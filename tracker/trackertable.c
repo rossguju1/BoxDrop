@@ -23,12 +23,13 @@ trackertable.c
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "trackertable.h"
+#include "../common/constants.h"
 
 
 
-#define MAX_PEER_SLOTS 10
+// #define MAX_PEER_SLOTS 10
 
-#define IP_LEN 25
+// #define IP_LEN 25
 
 
 
@@ -344,63 +345,6 @@ void hashtable_delete(tracker_table_t *tracker_table)
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

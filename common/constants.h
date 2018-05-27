@@ -1,4 +1,5 @@
 
+
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
@@ -10,9 +11,35 @@
 
 #define IP_LEN 25
 
-#define FILE_NAME_LEN
+#define REGISTER 0
+
+#define KEEP_ALIVE 1
+
+#define FILE_UPDATE 2
+
+
+
+#define FILE_NAME_LEN 20
 
 
 
 
 #endif // CONSTANTS_H
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
