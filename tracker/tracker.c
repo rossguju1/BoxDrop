@@ -20,11 +20,16 @@
 #include <sys/socket.h>
 #include <sys/utsname.h>
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <netdb.h>
 #include <signal.h>
+#include <time.h>
 //#include "trackertable.h"
 #include "../common/constants.h"
 #include "../common/file.h"
+#include "tracker.h"
 
 /****** local functions *********/
 
@@ -35,6 +40,7 @@ void tracker_stop();
 
 /**************** global variables ****************/
 int listening_socket_fd = -1;         //Listening socket
+tracker_peer_t *tracker_side_peer_table[MAX_PEER_SLOTS]; // Tracker side Peer table
 
 //pthread_create(HandShake thread) when new peer joins
 
@@ -51,6 +57,9 @@ int listening_socket_fd = -1;         //Listening socket
 
 //If needed respond using peer-tracker handshake protocol (PTP)
 //
+
+//Initializes the tables and other stuff for tracker
+void tracker_init();
 
 void *tracker_hand_shake();
 
@@ -80,6 +89,7 @@ int main()
 
 	printf("%s\n", "Starting up tracker main thread");
 
+	tracker_init();
 	//Create tracker table
 	// tracker_table_t *Table = trackertable_create();
 
@@ -93,8 +103,6 @@ int main()
 	TrackerAddress.sin_family = AF_INET;
 	TrackerAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 	TrackerAddress.sin_port = htons(TRACKER_PORT);
-
-
 	// binding
 	if (bind(listening_socket_fd, (struct sockaddr *) &TrackerAddress, sizeof(TrackerAddress)) < 0) {
 		perror("Error when Binding");
@@ -122,6 +130,7 @@ int main()
 
 
 		printf("New Peer connecteed\n");
+		new_peer(new_socket, &TrackerAddress);
 
 		//CREATE A NEW HANDSHAKE THREAD
 
@@ -151,6 +160,49 @@ int main()
 
 
 
+void tracker_init(){
+
+	for (int i = 0; i < MAX_PEER_SLOTS; i++) {
+		tracker_side_peer_table[i] = NULL; //Set all entries in the table to NULL
+	}
+
+
+
+	//Also remember mutexes
+
+
+}
+
+//Function to handle new peer
+void new_peer(int sockfd, struct sockaddr_in address){
+	//looks up the peer to find the first 
+  //NULL entry, and creates a new peer entry using malloc() for that 
+  //entry.
+  for (int i = 0; i < MAX_PEER_SLOTS; i++) {
+    if (tracker_side_peer_table[i] == NULL){
+      tracker_side_peer_table[i] = malloc ( sizeof(struct _tracker_side_peer_t) );
+
+      if (tracker_side_peer_table[i] == NULL){
+        printf("%s\n","Error in malloc" );
+        return -1;
+      } else {
+      	// char ip[IP_LEN];
+        tracker_side_peer_table[i]->sockfd = sockfd;
+        char* ip = inet_ntoa(address.sin_addr);
+        memcpy(tracker_side_peer_table[i]->ip, ip ,IP_LEN);
+		tracker_side_peer_table[i]->last_time_stamp = time(NULL);
+
+		printf("Client connected with IP %s\n",tracker_side_peer_table[i]->ip);  
+        return i;
+      }
+
+    }
+  }
+
+  //If here, Maximum number of peers already connected
+  printf("%s\n","Maximum number of peers connected" );
+  return -1;
+}
 
 
 // void *tracker_hand_shake() {
