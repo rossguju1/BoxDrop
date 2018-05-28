@@ -45,10 +45,22 @@ int main()
     signal(SIGINT, peer_stop);
 
 
-    // choose an IP address to connect
-    char ipadr[50];
-    printf("Enter IP address of tracker to connect:");
-    scanf("%s", ipadr);
+    // // choose an IP address to connect
+    // char ipadr[50];
+    // printf("Enter IP address of tracker to connect:");
+    // scanf("%s", ipadr);
+
+    // choose a node to connect
+    char hostname[50];
+    printf("Enter server name to connect:");
+    scanf("%s", hostname);
+    struct hostent* host;
+    host = gethostbyname(hostname);     //get host structure from gethostbyname
+    if (host== NULL){
+        printf("%s\n","Invalid Server" );
+        return -1;
+    }
+    char* ip = inet_ntoa(*((struct in_addr *) host->h_addr_list[0]));
 
     // Create socket
     if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -63,8 +75,11 @@ int main()
     address.sin_family = AF_INET;
     address.sin_port = htons(TRACKER_PORT);
 
+
+
+
    // Convert IPv4 addresses from IP to binary form and pack it
-    if(inet_pton(AF_INET, ipadr, &address.sin_addr)<=0) 
+    if(inet_pton(AF_INET, ip, &address.sin_addr)<=0) 
     {
         printf("\nInvalid Tracker address to connect \n");
         return -1;
