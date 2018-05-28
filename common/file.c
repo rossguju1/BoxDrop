@@ -17,6 +17,17 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "file.h"
+#include "constants.h"
+
+void update_drop_box_directory()
+{
+	// need this function for first time initialization. it gets the file table from the tracker
+	// and matches against current folder
+	// it reads all the files in the directory
+	// and updates files that are outdated and downloads those files which are not present.
+
+}
+
 
 
 
@@ -29,7 +40,7 @@ void create_drop_box_directory()
 	char *ptrTocwd;
 	long size = pathconf(".", _PC_PATH_MAX);
 
-	char root[12] = "DropBoxroot";
+	char root[12] = DIRECTORY_NAME;
 
 
 	if ((buf = (char *)malloc((size_t)size)) != NULL) {

@@ -18,7 +18,9 @@
 #define FILE_UPDATE 2
 
 
+#define DIRECTORY_NAME "DROPBOX"
 
+#define MAX_FILES 500
 #define FILE_NAME_LEN 20
 
 

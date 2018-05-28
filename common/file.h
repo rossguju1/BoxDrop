@@ -6,6 +6,7 @@
 
 typedef struct file_info {
 
+    int wd;
 	char file_path; // Path of the file
 
 	unsigned long size; // Size of the file
@@ -15,6 +16,7 @@ typedef struct file_info {
 } FileInfo_t;
 
 
+void update_drop_box_directory();
 void create_drop_box_directory();
 
 
