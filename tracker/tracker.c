@@ -33,7 +33,8 @@
 
 /****** local functions *********/
 
-void tracker_stop(); 
+void tracker_stop();
+
 
 /****** local constants *********/
 
@@ -120,13 +121,16 @@ int main()
 	printf("Listening on Port %d\n", TRACKER_PORT);
 	printf("Waiting for connections......\n");
 
+	//Create a handshake thread
+	pthread_t monitor_thread;
+	pthread_create(&monitor_thread, NULL, monitor_peers, (void *) 0);	
 
 	//Listen until accept returns error
 	while(1){
 		new_socket = accept(listening_socket_fd, (struct sockaddr *)&TrackerAddress, 
                        (socklen_t*)&addrlen);
 		if (new_socket < 0){
-			printf("Error accepting a new connection\n");
+			//printf("Error accepting a new connection\n");
 			break;
 		}
 
@@ -215,9 +219,7 @@ void* handshake(void* arg) {
 	//Parse input and free input memory
 	handshake_seg_t* toHandshakeThread = (handshake_seg_t*) arg;
 	int sockfd = toHandshakeThread->sockfd;
-	printf("%s\n","asd" );
 	struct in_addr peerIP = toHandshakeThread->sin_addr;
-	printf("%s\n","here" );
 	free(arg);
 
 	ptp_peer_t* receivedseg = malloc(sizeof(ptp_peer_t) );
@@ -242,14 +244,21 @@ void* handshake(void* arg) {
 
 			} else {
 				//Either error or maximum peers connected
+				printf("Either error or maximum peers connected!!!!\n");
 			} 
 
 		} else if (receivedseg->type == KEEP_ALIVE){
-			printf("Peer sent keep alive message\n");
+			if (tracker_side_peer_table[tableindex] != NULL){
+				tracker_side_peer_table[tableindex]->slast_time_stamp = time(NULL);
+			}
 
 		} else if (receivedseg->type == FILE_UPDATE){
 			printf("Peer sent file update\n");
-		} else {
+		} else if (receivedseg->type == PEER_CLOSE){
+			printf("Peer sent close\n");
+			disconnectpeer(tableindex);
+		}
+		 else {
 			printf("Unknown type of segment received for sockfd %d\n",sockfd );
 		}
 
@@ -257,46 +266,59 @@ void* handshake(void* arg) {
 	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
 	free(receivedseg);
 	free(segtosend);
+	//disconnectpeer(tableindex);
 	return;
 
  
 
 }
 
-// void *tracker_hand_shake() {
 
 
 
-// 	tracker_send();
+//REmoves dead peers if timeout occours
+void *monitor_peers()
+{
 
-// 	tracker_recieve(int sockfd, );
+	while(1){
+		int count = 0;
+		for (int i = 0; i < MAX_PEER_SLOTS; i++) {
+			if (tracker_side_peer_table[i] == NULL){
+				continue;
+			}
+			count++;
+			   time_t currenttime = time(NULL);
+			   int difference = (int) (currenttime - tracker_side_peer_table[i]->last_time_stamp);
+			   printf("difference is %d\n",difference );
+			   if (difference > HEARTBEAT_TIMEOUT){
 
+			   	//Disconnect the client
+			   	disconnectpeer(i);
+			   }
 
+		}
+		printf("Current number of peers connected is %d\n",count );
+		sleep(MONITOR_INTERVAL);
+	}
 
-
-
-// }
-
-
-
-
-// void *monitor_peers()
-// {
-
-
-// 	time_t t0 = time(0);
-// // ...
-// 	time_t t1 = time(0);
-// 	double datetime_diff_ms = difftime(t1, t0) * 1000.;
-
-
-
-
-// }
-
-
+}
 
 
+
+void disconnectpeer(int index){
+	if (tracker_side_peer_table[index] == NULL){
+		printf("Client already disconnected!\n");
+		return;
+	}
+
+	//Maybe send a closing message???
+	printf("%s\n","Trying to disconnect peer" );
+	close(tracker_side_peer_table[index]->sockfd);
+	free(tracker_side_peer_table[index]);
+	tracker_side_peer_table[index] = NULL;
+	printf("Peer at index %d disconnected\n", index );
+
+}
 
 
 void tracker_stop(){

@@ -44,12 +44,6 @@ int main()
 
     signal(SIGINT, peer_stop);
 
-
-    // // choose an IP address to connect
-    // char ipadr[50];
-    // printf("Enter IP address of tracker to connect:");
-    // scanf("%s", ipadr);
-
     // choose a node to connect
     char hostname[50];
     printf("Enter server name to connect:");
@@ -111,7 +105,7 @@ void talkto_tracker(){
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
     free(segtosend);
 
-    //Create an heartbeat thread
+    //Create an heartbeat thread (keepAlive)
     pthread_t heartbeat_thread;
     pthread_create(&heartbeat_thread, NULL, keepAlive, (void *) tracker_connection);
 
