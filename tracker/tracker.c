@@ -21,21 +21,27 @@
 #include <sys/utsname.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "trackertable.h"
+#include <signal.h>
+//#include "trackertable.h"
+#include "../common/constants.h"
 #include "../common/file.h"
 
 /****** local functions *********/
 
-
+void tracker_stop(); 
 
 /****** local constants *********/
+
+
+/**************** global variables ****************/
+int listening_socket_fd = -1;         //Listening socket
 
 //pthread_create(HandShake thread) when new peer joins
 
 //Listen on handshake port
 
 
-#define TRACKER_PORT 3465
+
 
 #define MAX_PEER_SLOTS 10
 
@@ -52,57 +58,51 @@ void *tracker_hand_shake();
 //Remove dead peers if timeout occurs
 void *monitor_peers();
 
-void tracker_recieve(tracker_table_t *table, seg_t *segmentBuffer);
+// void tracker_recieve(tracker_table_t *table, seg_t *segmentBuffer);
 
-void tracker_send(tracker_table_t *table, );
+// void tracker_send(tracker_table_t *table, );
 
 int connect_to_peer();
 
 
 
 
-
+//Main thread: listen on the handshake port, 
+//and create a Handshake thread when a new peer joins.
 int main()
 {
 
-	int socket_fd;
+	int new_socket = 0;
+	signal(SIGINT, tracker_stop);
 
-	fd_set SelectSet;
+	struct sockaddr_in TrackerAddress;
+	int addrlen = sizeof(TrackerAddress);
 
-	struct sockaddr_in ServerAddress;
+	printf("%s\n", "Starting up tracker main thread");
 
-	printf("%s\n", "Starting up tracker");
+	//Create tracker table
+	// tracker_table_t *Table = trackertable_create();
 
-	tracker_table_t *Table = trackertable_create();
-
-	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-	if (socket_fd < 0) {
+	//Open socket in TRACKER_PORT
+	listening_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (listening_socket_fd < 0) {
 		perror("opening socket failed");
 		exit(-1);
 	}
 
-
-	int opt_val = 1;
-	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
-
-	memset(&ServerAddress, 0, sizeof(ServerAddress));
+	TrackerAddress.sin_family = AF_INET;
+	TrackerAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+	TrackerAddress.sin_port = htons(TRACKER_PORT);
 
 
-	ServerAddress.sin_family = AF_INET;
-
-	ServerAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	ServerAddress.sin_port = htons(TRACKER_PORT);
-
-
-// binding
-	if (bind(socket_fd, (struct sockaddr *) &ServerAddress, sizeof(ServerAddress)) < 0) {
+	// binding
+	if (bind(listening_socket_fd, (struct sockaddr *) &TrackerAddress, sizeof(TrackerAddress)) < 0) {
 		perror("Error when Binding");
 		exit(-1);
 	}
 
-	if (listen(socket_fd, MAX_PEER_SLOTS) < 0) {
+	//Listen on the handshake port
+	if (listen(listening_socket_fd, MAX_PEER_SLOTS) < 0) {
 		perror("Error when listening");
 		exit(-1);
 	}
@@ -111,12 +111,36 @@ int main()
 	printf("Waiting for connections......\n");
 
 
+	//Listen until accept returns error
+	while(1){
+		new_socket = accept(listening_socket_fd, (struct sockaddr *)&TrackerAddress, 
+                       (socklen_t*)&addrlen);
+		if (new_socket < 0){
+			printf("Error accepting a new connection\n");
+			break;
+		}
+
+
+		printf("New Peer connecteed\n");
+
+		//CREATE A NEW HANDSHAKE THREAD
+
+
+	}
+	
+
+    // valread = read( new_socket , buffer, 1024);
+    // printf("%s\n",buffer );
+    // send(new_socket , hello , strlen(hello) , 0 );
+    // printf("Hello message sent\n");
+    // return 0;
+	
 
 
 
-	pthread_t handshake_thread;
+	// pthread_t handshake_thread;
 
-	pthread_create(&handshake_thread, NULL, tracker_hand_shake, (void *)0);
+	// pthread_create(&handshake_thread, NULL, tracker_hand_shake, (void *)0);
 
 
 
@@ -129,41 +153,45 @@ int main()
 
 
 
-void *tracker_hand_shake() {
+// void *tracker_hand_shake() {
 
 
 
-	tracker_send();
+// 	tracker_send();
 
-	tracker_recieve(int sockfd, );
-
-
+// 	tracker_recieve(int sockfd, );
 
 
 
+
+
+// }
+
+
+
+
+// void *monitor_peers()
+// {
+
+
+// 	time_t t0 = time(0);
+// // ...
+// 	time_t t1 = time(0);
+// 	double datetime_diff_ms = difftime(t1, t0) * 1000.;
+
+
+
+
+// }
+
+
+
+
+
+
+void tracker_stop(){
+    if (listening_socket_fd >=0){
+        close(listening_socket_fd);
+    }
+    printf("Exiting Tracker\n");
 }
-
-
-
-
-void *monitor_peers()
-{
-
-
-	time_t t0 = time(0);
-// ...
-	time_t t1 = time(0);
-	double datetime_diff_ms = difftime(t1, t0) * 1000.;
-
-
-
-
-}
-
-
-
-
-
-
-
-
