@@ -63,6 +63,8 @@ void tracker_init();
 
 void *tracker_hand_shake();
 
+void* handshake(void* arg);
+
 //monitor and accept alive message from peers
 //Remove dead peers if timeout occurs
 void *monitor_peers();
@@ -130,26 +132,23 @@ int main()
 
 
 		printf("New Peer connecteed\n");
-		new_peer(new_socket, &TrackerAddress);
 
-		//CREATE A NEW HANDSHAKE THREAD
+		//Data to send to handshake thread
+		handshake_seg_t* toHandshakeThread = malloc(sizeof(handshake_seg_t));
+		toHandshakeThread->sockfd = new_socket;
+		toHandshakeThread->sin_addr = TrackerAddress.sin_addr;
+
+		//Create a handshake thread
+		pthread_t handshake_thread;
+		pthread_create(&handshake_thread, NULL, handshake, (void *) toHandshakeThread);
+
+
 
 
 	}
 	
 
-    // valread = read( new_socket , buffer, 1024);
-    // printf("%s\n",buffer );
-    // send(new_socket , hello , strlen(hello) , 0 );
-    // printf("Hello message sent\n");
-    // return 0;
-	
 
-
-
-	// pthread_t handshake_thread;
-
-	// pthread_create(&handshake_thread, NULL, tracker_hand_shake, (void *)0);
 
 
 
@@ -174,7 +173,7 @@ void tracker_init(){
 }
 
 //Function to handle new peer
-void new_peer(int sockfd, struct sockaddr_in address){
+int new_peer(int sockfd, struct in_addr peerIP){
 	//looks up the peer to find the first 
   //NULL entry, and creates a new peer entry using malloc() for that 
   //entry.
@@ -186,11 +185,15 @@ void new_peer(int sockfd, struct sockaddr_in address){
         printf("%s\n","Error in malloc" );
         return -1;
       } else {
-      	// char ip[IP_LEN];
+      
         tracker_side_peer_table[i]->sockfd = sockfd;
-        char* ip = inet_ntoa(address.sin_addr);
+        char* ip = inet_ntoa(peerIP);
         memcpy(tracker_side_peer_table[i]->ip, ip ,IP_LEN);
 		tracker_side_peer_table[i]->last_time_stamp = time(NULL);
+
+		// //Create a handshake thread
+		// pthread_t handshake_thread;
+		// pthread_create(&handshake_thread, NULL, handshake, (void *) sockfd);
 
 		printf("Client connected with IP %s\n",tracker_side_peer_table[i]->ip);  
         return i;
@@ -204,6 +207,61 @@ void new_peer(int sockfd, struct sockaddr_in address){
   return -1;
 }
 
+//Handshake thread, individual for each peer
+void* handshake(void* arg) {
+	printf("%s\n","new handshake thread" );
+	int tableindex = -1; //The index of the current peer in tracker_side_peer_table[]
+
+	//Parse input and free input memory
+	handshake_seg_t* toHandshakeThread = (handshake_seg_t*) arg;
+	int sockfd = toHandshakeThread->sockfd;
+	printf("%s\n","asd" );
+	struct in_addr peerIP = toHandshakeThread->sin_addr;
+	printf("%s\n","here" );
+	free(arg);
+
+	ptp_peer_t* receivedseg = malloc(sizeof(ptp_peer_t) );
+	ptp_tracker_t* segtosend = malloc(sizeof(ptp_tracker_t) );
+
+	//Recieve data from Peer
+	while( (read( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
+		//Keep reading until error occours
+		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
+			printf("Peer trying to register\n");
+			tableindex = new_peer(sockfd, peerIP);
+			if (tableindex >= 0){
+			 	//Acknowledge register
+			 	printf("%s\n","Acknowleding register" );
+			 	segtosend->interval = HEARTBEAT_INTERVAL;
+			 	printf("Sent interval is %d\n",segtosend->interval );
+			 	segtosend->piece_len = PIECE_LEN;
+			 	send(sockfd , segtosend , sizeof(ptp_tracker_t), 0 );
+			 	//Also need to send file table
+			 	//segtosend->file_table = something;			-TODO
+			 	//segtosend->file_table_size = something;		-TODO
+
+			} else {
+				//Either error or maximum peers connected
+			} 
+
+		} else if (receivedseg->type == KEEP_ALIVE){
+			printf("Peer sent keep alive message\n");
+
+		} else if (receivedseg->type == FILE_UPDATE){
+			printf("Peer sent file update\n");
+		} else {
+			printf("Unknown type of segment received for sockfd %d\n",sockfd );
+		}
+
+	}
+	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
+	free(receivedseg);
+	free(segtosend);
+	return;
+
+ 
+
+}
 
 // void *tracker_hand_shake() {
 
