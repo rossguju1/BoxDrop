@@ -233,7 +233,7 @@ void* handshake(void* arg) {
 			tableindex = new_peer(sockfd, peerIP);
 			if (tableindex >= 0){
 			 	//Acknowledge register
-			 	printf("%s\n","Acknowleding register" );
+			 	
 			 	segtosend->interval = HEARTBEAT_INTERVAL;
 			 	printf("Sent interval is %d\n",segtosend->interval );
 			 	segtosend->piece_len = PIECE_LEN;
@@ -249,7 +249,7 @@ void* handshake(void* arg) {
 
 		} else if (receivedseg->type == KEEP_ALIVE){
 			if (tracker_side_peer_table[tableindex] != NULL){
-				tracker_side_peer_table[tableindex]->slast_time_stamp = time(NULL);
+				tracker_side_peer_table[tableindex]->last_time_stamp = time(NULL);
 			}
 
 		} else if (receivedseg->type == FILE_UPDATE){
@@ -266,7 +266,7 @@ void* handshake(void* arg) {
 	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
 	free(receivedseg);
 	free(segtosend);
-	//disconnectpeer(tableindex);
+	disconnectpeer(tableindex);
 	return;
 
  
