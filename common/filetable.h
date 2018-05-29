@@ -29,6 +29,8 @@ typedef struct fileTable {
 	struct node *head;
 } fileTable_t;
 
+Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
+
 void *create_fileTable(void);
 
 Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
@@ -43,8 +45,7 @@ unsigned long int get_file_timestamp(fileTable_t *table, char* filename);
 
 void deleter(fileTable_t *table, char* filename);
 
-Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
-
+fileTable_t *fileTable_REGISTER();
 
 #endif
 

@@ -12,259 +12,15 @@
 #include <sys/socket.h>
 #include <sys/utsname.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include <netdb.h>
+#include "file.h"
 #include "filetable.h"
 
 
-// typedef struct node {
 
-// 	int status;
-// //the size of the file
-// 	int size;
-// //the name of the file
-// 	char *filename;
-// //the timestamp when the file is modified or created
-// 	unsigned long int timestamp;
-// //pointer to build the linked list
-// 	struct node *next;
-// //for the file table on peers, it is the ip address of the peer
-// //for the file table on tracker, it records the ip of all peers which has the
-// //newest edition of the file
-// 	char* newpeerip;
 
-// 	char* OGPeer; // original ganster peer that added the file
 
-// } Node_t;
-
-// typedef struct fileTable {
-// 	struct node *head;
-// } fileTable_t;
-
-// Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
-
-// void *create_fileTable(void);
-
-// Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
-
-// bool node_insert(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip);
-
-// char* get_ip_file(fileTable_t *table, char* filename);
-
-// char* get_originalip_file(fileTable_t *table, char* filename);
-
-// unsigned long int get_file_timestamp(fileTable_t *table, char* filename);
-
-// void delete(fileTable_t *table, char* filename);
-/*
-
-int main() {
-
-	printf("%s\n", "making filetable");
-	fileTable_t* maketable = create_fileTable();
-
-	printf("%s\n", "made filetable");
-
-
-	char node_1[27] = "file1.c";
-	char node_1_ip[45] = "126.2.222.111";
-	unsigned long int time1 = 132;
-	int size1 = 111;
-
-	printf("%s\n", "inserting node 1");
-	if (node_insert(maketable, node_1, size1, time1, node_1_ip)) {
-
-		printf("%s\n", "Inserted node1 !!!!");
-	}
-
-
-
-	char node_2[27] = "file2.c";
-	char node_2_ip[45] = "201.0.111.608";
-	unsigned long int time2 = 223;
-	int size2 = 2222;
-
-
-	printf("%s\n", "inserting node 2");
-	if (node_insert(maketable, node_2, size2, time2, node_2_ip)) {
-
-		printf("%s\n", "Inserted node2 !!!!");
-	}
-
-
-
-	char node_3[27] = "file3.c";
-	char node_3_ip[45] = "385.9.000.129";
-	unsigned long int time3 = 320;
-	int size3 = 333333;
-
-
-
-	printf("%s\n", "inserting node 3");
-	if (node_insert(maketable, node_3, size3, time3, node_3_ip)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-
-
-
-	char node_4[27] = "file4.c";
-	char node_4_ip[45] = "426.2.432.494";
-	unsigned long int time4 = 458;
-	int size4 = 44444;
-
-	printf("%s\n", "inserting node 4");
-	if (node_insert(maketable, node_4, size4, time4, node_4_ip)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-
-
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-
-		printf("file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-	}
-	char* charter = get_ip_file(maketable, node_2);
-
-	char* ipip2 = get_originalip_file(maketable, node_2);
-
-	unsigned long int timestamper2 = get_file_timestamp(maketable, node_2);
-
-
-	printf("node2 current ip %s OG ip %s time stamp %lu\n", charter, ipip2, timestamper2);
-
-	char* charter3 = get_ip_file(maketable, node_3);
-
-	char* ipip3 =  get_originalip_file(maketable, node_3);
-
-	unsigned long int timestamper3 = get_file_timestamp(maketable, node_3);
-
-	printf("node3 current ip %s, OG ip %s time stamp %lu\n", charter3, ipip3, timestamper3);
-
-
-	char dummy[123] = "dummy";
-
-	unsigned long int dummynum = 676;
-
-
-	if (node_insert(maketable, node_3, size3,  dummynum, dummy)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-
-
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-
-		printf("file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-	}
-
-
-	char new2[12] = "new2file";
-
-	char new2ip[12] = "new2ip";
-
-	unsigned long int time2_new = 00;
-
-
-	if (node_insert(maketable, node_2, timestamper2,  time2_new, new2ip)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-	charter = get_ip_file(maketable, node_2);
-
-	ipip2 = get_originalip_file(maketable, node_2);
-
-	timestamper2 = get_file_timestamp(maketable, node_2);
-
-
-	printf("~1node2 current ip %s OG ip %s time stamp %lu\n", charter, ipip2, timestamper2);
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-
-		printf("~1file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-	}
-
-	if (node_insert(maketable, node_2, 0, dummynum, new2ip)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-	charter = get_ip_file(maketable, node_2);
-
-	ipip2 = get_originalip_file(maketable, node_2);
-
-	timestamper2 = get_file_timestamp(maketable, node_2);
-
-
-	printf("~2node2 current ip %s OG ip %s time stamp %lu\n", charter, ipip2, timestamper2);
-
-
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-
-		printf("~2file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-	}
-
-	if (node_insert(maketable, node_2, 0, dummynum, new2ip)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-	charter = get_ip_file(maketable, node_2);
-
-	ipip2 = get_originalip_file(maketable, node_2);
-
-	timestamper2 = get_file_timestamp(maketable, node_2);
-
-
-	printf("~3node2 current ip %s OG ip %s time stamp %lu\n", charter, ipip2, timestamper2);
-
-
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-
-		printf("~3file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-	}
-
-	if (node_insert(maketable, node_2, 0, dummynum, dummy)) {
-
-		printf("%s\n", "Inserted node3 !!!!");
-	}
-
-	charter = get_ip_file(maketable, node_2);
-
-	ipip2 = get_originalip_file(maketable, node_2);
-
-	timestamper2 = get_file_timestamp(maketable, node_2);
-
-
-	printf("~4node2 current ip %s OG ip %s time stamp %lu\n", charter, ipip2, timestamper2);
-
-
-
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-
-		printf("~4file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-	}
-
-
-	delete(maketable, node_2);
-
-	for (Node_t *node = maketable->head; node != NULL; node = node->next) {
-		if (node->filename != NULL) {
-			printf("file name: %s size: %d time: %lu ip: %s original : %s\n\n", node->filename, node->size, node->timestamp, node->newpeerip, node->OGPeer);
-		}
-	}
-
-	return 0;
-}
-*/
 
 
 
@@ -321,8 +77,11 @@ Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int
 bool node_insert(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip)
 {
 
-	if (table == NULL || filename == NULL) {
+	if (table == NULL || filename == NULL)  {
 		printf("%s\n", "table or filename is NULL and file was not inserted");
+		return false;
+	}
+	if (size < 0) {
 		return false;
 	}
 	// allocate a new node to be added to the list
@@ -439,7 +198,7 @@ void deleter(fileTable_t *table, char* filename)
 			free(node->newpeerip);
 			free(node->OGPeer);
 			node->size = 0;
-			node->timestamp = 1;
+			node->timestamp = 0;
 			node->filename = NULL;
 			node->newpeerip = NULL;
 			node->OGPeer = NULL;
@@ -451,13 +210,76 @@ void deleter(fileTable_t *table, char* filename)
 	}
 }
 
+int get_file_count(fileTable_t *table) {
+
+	int counter;
+
+	counter = 1;
+
+	for (Node_t *node = table->head; node != NULL; node = node->next) {
+		if (node->filename != NULL) {
+			counter++;
+		}
+	}
+
+
+	return counter;
+}
+
+
+fileTable_t *fileTable_REGISTER() {
+
+	char hostname[2048];
+	int node_id;
+	gethostname(hostname, 2048);
+	struct hostent *host;
+	char* ip_address;
 
 
 
 
 
+	host = gethostbyname(hostname);
+	ip_address = inet_ntoa(*((struct in_addr*)host->h_addr_list[0]));
+
+	//printf("ip %s\n", hostname);
+
+	unsigned long int timestamp = time(NULL);
 
 
+	struct dirent *DIRentry;  // Pointer for directory entry
+	// chdir("/Users/rossguju/Desktop/anon/CS60SP18/CS60-TeamDDOS-DropBox/common");
+
+	DIR *DIRp = opendir(".");
+
+	if (DIRp == NULL)
+	{
+		printf("Could not open dropbox root directory" );
+		return NULL;
+	}
+	fileTable_t *localFileTable = create_fileTable();
+	printf("file number %d \n", get_number_of_files());
+
+	while ((DIRentry = readdir(DIRp)) != NULL) {
+
+
+
+		int size = get_file_size(DIRentry->d_name);
+
+		if (node_insert(localFileTable, DIRentry->d_name, size, timestamp, ip_address)) {
+
+			continue;
+		}
+
+	}
+	closedir(DIRp);
+
+	// deleter(localFileTable, ".");
+	// deleter(localFileTable, "..");
+
+
+	return localFileTable;
+}
 
 
 
