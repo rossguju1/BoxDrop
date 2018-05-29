@@ -1,7 +1,5 @@
-
 #ifndef FILETABLE_H
 #define FILETABLE_H
-
 
 
 
@@ -45,12 +43,20 @@ unsigned long int get_file_timestamp(fileTable_t *table, char* filename);
 
 void deleter(fileTable_t *table, char* filename);
 
+
 fileTable_t *fileTable_REGISTER();
 
+int check_update_local(fileTable_t* localFiletable, fileTable_t* trackerFile_table);
+
+int check_update_tracker(fileTable_t* localFiletable, fileTable_t* trackerFile_table);
+
+bool find_file(fileTable_t *table, char* filename);
+
+int check_modified(fileTable_t* write_update_table, fileTable_t* read_update_table);
+
+
+
 #endif
-
-
-
 
 
 

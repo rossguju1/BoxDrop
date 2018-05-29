@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,14 +17,6 @@
 #include <netdb.h>
 #include "file.h"
 #include "filetable.h"
-
-
-
-
-
-
-
-
 
 void *create_fileTable(void)
 {
@@ -188,6 +181,29 @@ unsigned long int get_file_timestamp(fileTable_t *table, char* filename)
 	return -1;
 }
 
+bool find_file(fileTable_t *table, char* filename)
+{
+
+	if (table == NULL) {
+		return false; // bad set
+	} else if (table->head == NULL) {
+		return false; // set is empty
+	} else if (filename == NULL) {
+		return false; // key is NULL
+	} else {
+		Node_t *currentNode = table->head;
+		while ( currentNode != NULL ) { //iterate through all items
+			if (strcmp(currentNode->filename, filename) == 0 ) { //If key matches, return item
+				return true;
+			}
+			currentNode = currentNode->next;
+		}
+		return false; //not found
+	}
+	// never going to get here
+	return false;
+}
+
 
 void deleter(fileTable_t *table, char* filename)
 {
@@ -258,7 +274,7 @@ fileTable_t *fileTable_REGISTER() {
 		return NULL;
 	}
 	fileTable_t *localFileTable = create_fileTable();
-	printf("file number %d \n", get_number_of_files());
+	// printf("file number %d \n", get_number_of_files());
 
 	while ((DIRentry = readdir(DIRp)) != NULL) {
 
@@ -266,7 +282,7 @@ fileTable_t *fileTable_REGISTER() {
 
 		int size = get_file_size(DIRentry->d_name);
 
-		if (node_insert(localFileTable, DIRentry->d_name, size, timestamp, ip_address)) {
+		if (node_insert(localFileTable, DIRentry->d_name, (size - 2), timestamp, ip_address)) {
 
 			continue;
 		}
@@ -282,6 +298,127 @@ fileTable_t *fileTable_REGISTER() {
 }
 
 
+
+/*
+int get_file_size(char *filename)
+{
+
+
+
+	FILE* fd;
+
+	fd = fopen(filename, "r");
+
+	int fileSize;
+
+
+	fseek(fd, 0L, SEEK_END);
+
+
+	fileSize = ftell(fd);
+
+
+
+	rewind(fd);
+
+	return fileSize;
+}
+*/
+
+
+int get_number_of_files()
+{
+	struct dirent *Dirptr;
+
+	// opendir() returns a pointer of DIR type.
+	DIR *Dirp = opendir(".");
+
+	int counter;
+
+	counter = 0;
+
+	if (Dirp == NULL)
+	{
+		printf("Could not open current directory" );
+		return 0;
+	}
+
+
+	while ((Dirptr = readdir(Dirp)) != NULL) {
+
+		counter++;
+
+	}
+
+
+	closedir(Dirp);
+
+
+
+
+	return counter;
+
+}
+
+
+int check_update_local(fileTable_t* localFiletable, fileTable_t* trackerFile_table)
+{
+	int counter = 0;
+	for (Node_t *node = trackerFile_table->head; node != NULL; node = node->next) {
+		char* track_input = node->filename;
+
+		if (!find_file(localFiletable, track_input)) {
+			if (node_insert(localFiletable, track_input, node->size, node->timestamp, node->newpeerip)) {
+				printf("local file is missing file : %s\n", node->filename);
+				counter++;
+				continue;
+			}
+
+		}
+	}
+	return counter;
+}
+
+int check_update_tracker(fileTable_t* localFiletable, fileTable_t* trackerFile_table) {
+	int counter = 0;
+
+	for (Node_t *node = localFiletable->head; node != NULL; node = node->next) {
+
+		if (!find_file(trackerFile_table, node->filename)) {
+
+			if (node_insert(trackerFile_table, node->filename, node->size, node->timestamp, node->newpeerip)) {
+				printf("local file is missing file : %s\n", node->filename);
+				counter++;
+				continue;
+			}
+
+		}
+
+	}
+	return counter;
+}
+
+
+int check_modified(fileTable_t* write_update_table, fileTable_t* read_update_table) {
+	int counter = 0;
+
+	for (Node_t *node = read_update_table->head; node != NULL; node = node->next) {
+		if (find_file(write_update_table, node->filename)) {
+
+			if (get_file_timestamp(write_update_table, node->filename) != get_file_timestamp(read_update_table, node->filename)) {
+				int gtime = get_file_timestamp(read_update_table, node->filename);
+				if (node_insert(write_update_table, node->filename, node->size, gtime, node->newpeerip)) {
+					printf("local file needs to be updated because timeStamp is different : %s\n", node->filename);
+					counter++;
+					continue;
+				}
+
+			}
+
+		}
+	}
+	return counter;
+}
 
 
 
