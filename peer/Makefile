@@ -10,7 +10,7 @@ C = ../common
 PROGS = peer
 LIBS = -pthread
 
-CFLAGS = -Wall -pedantic -w -std=c11 -ggdb -I$C
+CFLAGS = -Wall -pedantic -w -std=c11 -ggdb -I$C -D_BSD_SOURCE
 CC = gcc
 MAKE = make
 
@@ -19,11 +19,11 @@ VALGRIND = valgrind --leak-check=full --show-leak-kinds=all
 
 all: $(PROGS)
 
-peer: peer.o 
+peer: peer.o $(C)/file.o 
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 ##### source dependencies
-peer.o: peer.h $(C)/constants.h
+peer.o: peer.h $(C)/constants.h $(C)/file.h
 
 
 .PHONY: valgrind clean
