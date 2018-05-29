@@ -23,7 +23,8 @@ peer: peer.o $(C)/file.o
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 ##### source dependencies
-peer.o: peer.h $(C)/constants.h $(C)/file.h
+peer.o: peer.h $(C)/constants.h $(C)/filetable.h $(C)/file.h
+filetable.o: $(C)/filetable.h $(C)/constants.h
 
 
 .PHONY: valgrind clean

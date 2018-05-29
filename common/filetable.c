@@ -18,7 +18,7 @@
 #include "file.h"
 #include "filetable.h"
 
-void *create_fileTable(void)
+filetable_t *create_fileTable(void)
 {
 
 	fileTable_t *table = (fileTable_t*)malloc(sizeof(fileTable_t));

@@ -29,7 +29,7 @@
 //#include "trackertable.h"
 #include "../common/constants.h"
 #include "peer.h"
-#include "../common/file.h"
+#include "../common/filetable.h"
 
 /**************** local functions ****************/
 void peer_stop(); 
@@ -107,7 +107,7 @@ int main()
 
     signal(SIGINT, peer_stop);
 
-    // choose a node to connect
+    // // choose a node to connect
     char hostname[50];
     printf("Enter server name to connect:");
     scanf("%s", hostname);
@@ -118,6 +118,14 @@ int main()
         return -1;
     }
     char* ip = inet_ntoa(*((struct in_addr *) host->h_addr_list[0]));
+
+    // choose an IP to connect
+    // char hostname[50];
+    // printf("Enter server IP to connect:");
+    // scanf("%s", hostname);
+    // // struct hostent* host;
+    // char *ip;
+    // inet_pton(AF_INET, hostname, ip);
 
     // Create socket
     if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)

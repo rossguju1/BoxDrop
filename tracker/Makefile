@@ -19,11 +19,12 @@ VALGRIND = valgrind --leak-check=full --show-leak-kinds=all
 
 all: $(PROGS)
 
-tracker: tracker.o 
+tracker: tracker.o
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 ##### source dependencies
-tracker.o: tracker.h $(C)/constants.h
+tracker.o: tracker.h $(C)/filetable.h $(C)/constants.h
+filetable.o: $(C)/filetable.h $(C)/constants.h
 
 
 .PHONY: valgrind clean

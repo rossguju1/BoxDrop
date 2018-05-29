@@ -28,7 +28,7 @@
 #include <time.h>
 //#include "trackertable.h"
 #include "../common/constants.h"
-#include "../common/file.h"
+#include "../common/filetable.h"
 #include "tracker.h"
 
 /****** local functions *********/
@@ -42,6 +42,7 @@ void tracker_stop();
 /**************** global variables ****************/
 int listening_socket_fd = -1;         //Listening socket
 tracker_peer_t *tracker_side_peer_table[MAX_PEER_SLOTS]; // Tracker side Peer table
+fileTable_t *global_filetable;
 
 //pthread_create(HandShake thread) when new peer joins
 
@@ -169,7 +170,7 @@ void tracker_init(){
 		tracker_side_peer_table[i] = NULL; //Set all entries in the table to NULL
 	}
 
-
+	//global_filetable = create_fileTable();
 
 	//Also remember mutexes
 
@@ -233,14 +234,12 @@ void* handshake(void* arg) {
 			tableindex = new_peer(sockfd, peerIP);
 			if (tableindex >= 0){
 			 	//Acknowledge register
-			 	
+			 	//int filetablesize = get_num_files_filetable(global_filetable);
 			 	segtosend->interval = HEARTBEAT_INTERVAL;
-			 	printf("Sent interval is %d\n",segtosend->interval );
 			 	segtosend->piece_len = PIECE_LEN;
-			 	send(sockfd , segtosend , sizeof(ptp_tracker_t), 0 );
-			 	//Also need to send file table
-			 	//segtosend->file_table = something;			-TODO
-			 	//segtosend->file_table_size = something;		-TODO
+			 	//segtosend->file_table_size = filetablesize;
+			 	//segtosend->file_table = get_portable_filetable(global_filetable);
+			 	send(sockfd , segtosend , sizeof(ptp_tracker_t), 0 );			 		
 
 			} else {
 				//Either error or maximum peers connected

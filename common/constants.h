@@ -29,7 +29,7 @@
 #define HEARTBEAT_INTERVAL 30
 #define HEARTBEAT_TIMEOUT 90
 
-#define MAX_FILES 500
+#define MAX_FILES 20
 #define FILE_NAME_LEN 20
 
 
