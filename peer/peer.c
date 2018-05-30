@@ -45,7 +45,9 @@ FILE *fp_log;
 int tracker_connection = -1;         //connection to the tracker
 int interval = -1;
 int piece_len = -1;
-
+bool modifying_global = true;
+bool file_added = true;
+struct current_downloads * peer_downloads;
 
 pthread_mutex_t *sendtotracker_mutex; //routing_table mutex
 
@@ -64,7 +66,7 @@ void add_watches(int fd, char *root)
     }
 
     /* add watch to starting directory */
-    wd = inotify_add_watch(fd, dp, IN_CREATE | IN_DELETE | IN_CLOSE_WRITE);//);
+    wd = inotify_add_watch(fd, root, IN_CREATE | IN_DELETE | IN_CLOSE_WRITE);//);
     /*wd = inotify_add_watch(fd, files[0], IN_CREATE | IN_DELETE | IN_CLOSE_WRITE);//);
     if (wd == -1)
     {
@@ -86,7 +88,7 @@ void add_watches(int fd, char *root)
     }
 
     /* Add watches to the Level 1 sub-dirs*/
-    abs_dir = (char *)malloc(MAX_LEN);
+    /*abs_dir = (char *)malloc(MAX_LEN);
     while((entry = readdir(dp)))
     {
         // if its a directory, add a watch
@@ -102,7 +104,7 @@ void add_watches(int fd, char *root)
             else
                 printf("Watching:: %s\n",abs_dir);
         }
-    }
+    }*/
 
     closedir(dp);
 //    free(abs_dir);
@@ -172,7 +174,7 @@ int main(const int argc, char *argv[])
     printf("%s\n","Peer connected to Tracker" );
 
     if (argc > 1){
-        downloadFromPeer();
+        //downloadFromPeer();
     }
 
     pthread_t monitor_thread;
@@ -182,7 +184,7 @@ int main(const int argc, char *argv[])
     pthread_create(&monitor_thread, NULL, monitor, (void *) 0);
     pthread_t listentopeer_thread;
     pthread_create(&listentopeer_thread, NULL, listen_to_peer, (void *) 0);
-    //talkto_tracker();
+    talkto_tracker();
 
     while(1){
         sleep(10);
@@ -194,10 +196,48 @@ int main(const int argc, char *argv[])
 	
 }
 
+bool inDirectory(char * file_name)
+{
+    return false;
+//    DIR *DIRp = opendir(".");
+//
+//// 	if (DIRp == NULL)
+//// 	{
+//// 		printf("Could not open dropbox root directory" );
+//// 		return NULL;
+//// 	}
+//// 	fileTable_t *localFileTable = create_fileTable();
+//// 	// printf("file number %d \n", get_number_of_files());
+//
+//// 	while ((DIRentry = readdir(DIRp)) != NULL) {
+//
+//
+//
+//// 		int size = get_file_size(DIRentry->d_name);
+//
+//// 		if (node_insert(localFileTable, DIRentry->d_name, (size - 2), timestamp, ip_address)) {
+//
+//// 			continue;
+//// 		}
+//
+//// 	}
+//// 	closedir(DIRp);
+}
+bool isInCurrentDownloads(node_t * nodes)
+{
+    return false;
+    //
+}
+
+bool CheckInFileTable(char * current_file_name,struct fileTable file_table)
+{
+    return true;
+}
 void talkto_tracker(){
     
     //First register
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
+    peer_downloads = malloc(sizeof(struct current_downloads));
     segtosend->type = REGISTER;
     //printf("%s\n","SENDING REGISTER" );
     pthread_mutex_lock(sendtotracker_mutex); 
@@ -211,6 +251,7 @@ void talkto_tracker(){
 printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
     printf("Size is ptp tracker is %ld\n", sizeof(ptp_tracker_t));
     ptp_tracker_t* receivedseg = malloc(sizeof(ptp_tracker_t) );
+
     //Keep receiving data from tracker
     while( (read( tracker_connection , receivedseg, sizeof(ptp_tracker_t))) > 0 ){
         printf("%s\n","Message received from tracker" );
@@ -219,6 +260,105 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
         piece_len = receivedseg->piece_len;
 
         printf("Received Filetable size is %d\n",receivedseg->file_table.numfiles );
+        for (int i = 0 ; i < receivedseg->file_table.numfiles+1; i++)
+        {
+            node_t * currentfile = &(receivedseg->file_table.nodes[i]);
+            printf("file name : %s\n", currentfile->filename);
+            printf("Number of peers is %d\n" ,currentfile->num_peers);
+            for (int j=0; j<currentfile->num_peers+1; j++ ){
+                printf ("Ip of peer %d is \n",j);
+                char newip[15];
+                inet_ntop(AF_INET, &(currentfile->IP_Peers_with_latest_file[j]),newip,sizeof(newip) );
+                for (int k=0;k<15;k++ ){
+                    printf("%c",newip[k]);
+                }
+                printf("\n");
+                printf("%s",newip);
+                printf("\nAn ip should be printed by now\n");
+            }
+        }
+
+
+        // 2 cases
+        //case 1
+        for (int i = 0 ; i< receivedseg->file_table.numfiles; i++)
+        {
+            if (inDirectory(receivedseg->file_table.nodes[i].filename) == false)
+            {
+                if (peer_downloads->num_downloads <= MAX_CONCURRENT_DOWNLOADS)
+                {
+                    if (!isInCurrentDownloads(receivedseg->file_table.nodes), peer_downloads)
+                    {
+                        //1. add to peer downloads
+                        /*peer_downloads->num_downloads++;
+                        memcpy(peer_downloads)
+                        *///peer_downloads->files
+                        // missing file
+                        // 2. go download from peer
+                        // 3. remove from peer downloads after download successful
+                        continue;
+                    }
+                }
+
+
+            }
+            else{
+                if (receivedseg->file_table.nodes[i].status == DELETED)
+                {
+                    //remove_locally(receivedseg->file_table.nodes[i].filename);
+                }
+            }
+        }
+
+        //case 2 = extra fies
+        //char * file_names = get_all_files_locally();
+        //int num_of_files = get_number_of_files_locally();
+        int num_of_files = 0;
+        char * file_names = NULL;
+        for(int i = 0 ; i <num_of_files; i++)
+        {
+            char current_file_name[FILE_NAME_LEN];
+            memcpy(current_file_name, file_names[i*FILE_NAME_LEN], sizeof(current_file_name)  );
+            printf("Comparing current filename %s", current_file_name);
+            if (!CheckInFileTable(current_file_name, receivedseg->file_table))
+            {
+                // send file update to tracker
+                ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
+                segtosend->type = FILE_UPDATE;
+                memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
+                segtosend->file_information.latest_timestamp = time(NULL);
+                segtosend->file_information.status = ADDED;
+                send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                free(segtosend);
+
+            }
+        }
+//        struct dirent *DIRentry;  // Pointer for directory entry
+//// 	// chdir("/Users/rossguju/Desktop/anon/CS60SP18/CS60-TeamDDOS-DropBox/common");
+//
+//// 	DIR *DIRp = opendir(".");
+//
+//// 	if (DIRp == NULL)
+//// 	{
+//// 		printf("Could not open dropbox root directory" );
+//// 		return NULL;
+//// 	}
+//// 	fileTable_t *localFileTable = create_fileTable();
+//// 	// printf("file number %d \n", get_number_of_files());
+//
+//// 	while ((DIRentry = readdir(DIRp)) != NULL) {
+//
+//
+//
+//// 		int size = get_file_size(DIRentry->d_name);
+//
+//// 		if (node_insert(localFileTable, DIRentry->d_name, (size - 2), timestamp, ip_address)) {
+//
+//// 			continue;
+//// 		}
+//
+//// 	}
+//// 	closedir(DIRp);
 
     }
 
@@ -258,7 +398,6 @@ void peer_stop(){
     printf("Exiting Peer\n");
     exit(1);
 }
-
 
 
 void* listen_to_peer(){
@@ -661,29 +800,70 @@ void *monitor(void *arg) {
                 struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
                 if ( event->len ) {
                     if ( event->mask & IN_CREATE) {
-                        if (event->mask & IN_ISDIR)
-                            printf("DIR::%s CREATED\n", event->name );
-                        else
-                            printf("FILE::%s CREATED\n", event->name);
+                            if (event->name[0] != ':' && event->name[0] != '.')
+                            {
+                                if (event->mask & IN_ISDIR) {
+                                    printf("DIR::%s CREATED\n", event->name);
+                                }
+                                else
+                                {
+                                    printf("FILE::%s CREATED\n", event->name);
+                                    file_added = true;
+                                }
+
+                            }
                     }
 
                     if ( event->mask & IN_MODIFY) {
                         if (event->mask & IN_ISDIR)
+                        {
+
+                        }
                             printf("DIR::%s MODIFIED\n",event->name );
 
 
                     }
                     if ( event->mask & IN_CLOSE_WRITE) {
-                        printf( "The file %s was modified done.\n", event->name );
+                        if (!file_added)
+                        {
+                            if(modifying_global){
+                                if (event->name[0] != ':' && event->name[0] != '.')
+                                {
+                                    if (event->mask & IN_ISDIR) {
+                                        pthread_t modifying_thread;
+                                        pthread_create(&modifying_thread, NULL, modify, (void *) (char*)event->name);
+                                    }
+                                    else
+                                    {
+                                        pthread_t modifying_thread;
+                                        pthread_create(&modifying_thread, NULL, modify, (void *) (char*)event->name);
+                                    }
+
+                                }
+
+                            }
+
+                        }
+                        else
+                        {
+                            file_added = false;
+                        }
 
 
                     }
 
                     if ( event->mask & IN_DELETE) {
-                        if (event->mask & IN_ISDIR)
-                            printf(" DIR::%s DELETED\n",event->name );
-                        else
-                            printf("FILE::%s DELETED\n", event->name );
+                        if (event->name[0] != ':' && event->name[0] != '.')
+                        {
+                            if (event->mask & IN_ISDIR) {
+                                printf(" DIR::%s DELETED\n",event->name );
+                            }
+                            else
+                            {
+                                printf("FILE::%s DELETED\n", event->name );
+                            }
+
+                        }
                     }
 
                     i += EVENT_SIZE + event->len;
@@ -711,3 +891,12 @@ void *monitor(void *arg) {
     return NULL;
 }
 
+void *modify(void *arg) {
+    modifying_global = false;
+    sleep(1);
+    char * file_name = ((char *) arg);
+   // char * file_name = *(char*)arg;
+    printf("file modified: %s\n", file_name);
+    modifying_global = true;
+    pthread_exit(NULL);
+}

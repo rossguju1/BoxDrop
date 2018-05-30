@@ -40,6 +40,24 @@ fileTable_t *create_fileTable()
 		return NULL;       //error allocating memory
 	} else {
 		table->numfiles = 0;
+        //Set all IP to 0.0.0.0
+        char zeroIP[15] = "000.000.000.000";
+        char IPtoPrint[15];
+        for (int i=0; i<MAX_FILES; i++ ){
+            for (int j =0 ; j < MAX_PEER_SLOTS ;j++)
+            {
+                printf("\nTrying to add zero IP\n");
+                inet_pton(AF_INET, zeroIP,(&table->nodes[i].IP_Peers_with_latest_file[j]));
+                printf("The Zero IP we added is:\n");
+                inet_ntop(AF_INET,(&table->nodes[i].IP_Peers_with_latest_file[j]), IPtoPrint, sizeof(IPtoPrint) );
+                for (int k=0; k <15; k++){
+                    printf("%c",IPtoPrint[k]);
+                }
+            }
+
+            table->nodes[i].num_peers = 0;
+            memset(table->nodes[i].IP_Peers_with_latest_file, 0, sizeof(table->nodes[i].IP_Peers_with_latest_file));
+        }
 		return table;
 	}
 }

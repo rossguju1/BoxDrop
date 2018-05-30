@@ -45,6 +45,7 @@ int listening_socket_fd = -1;         //Listening socket
 tracker_peer_t *tracker_side_peer_table[MAX_PEER_SLOTS]; // Tracker side Peer table
 fileTable_t *global_filetable;
 
+pthread_mutex_t * filetable_mutex; //file_table mutex
 //pthread_create(HandShake thread) when new peer joins
 
 //Listen on handshake port
@@ -169,8 +170,8 @@ void tracker_init(){
 	}
 
 	global_filetable = create_fileTable();
-
-	//Also remember mutexes
+    filetable_mutex = malloc( sizeof(pthread_mutex_t) );
+    pthread_mutex_init(filetable_mutex,NULL);
 
 
 }
@@ -249,6 +250,7 @@ void* handshake(void* arg) {
 
 		} else if (receivedseg->type == FILE_UPDATE){
 			printf("Peer sent file update\n");
+            handleFileUpdate(receivedseg, &peerIP);
 		} else if (receivedseg->type == PEER_CLOSE){
 			printf("Peer sent close\n");
 			disconnectpeer(tableindex);
@@ -314,9 +316,47 @@ void disconnectpeer(int index){
 }
 
 
+void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip){
+    // 1.     updateFileTableAfterUpdate(recv_seg);
+
+/*    if (recv_seg->file_information.status = DELETED || recv_seg->file_information.status = MODIFIED)
+        updateFileTable(recv_seg->file_information);
+    for(int i = 0 ; i <global_filetable->nodes[global_filetable->numfiles].num_peers; i++)
+    {
+
+    }
+    else{
+        // added
+        if (!global_filetable->numfiles >= MAX_FILES)
+        {
+            pthread_mutex_lock(filetable_mutex);
+            global_filetable->nodes[global_filetable->numfiles].status = ADDED;
+            global_filetable->nodes[global_filetable->numfiles].latest_timestamp = recv_seg->file_information.latest_timestamp;
+            memcpy(global_filetable->nodes[global_filetable->numfiles].filename, recv_seg->file_information.filename,
+                   sizeof(recv_seg->file_information.filename));
+
+            //TODO: enter ip in list of ips
+
+            struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[0]);
+            memcpy(desttocopy, ip, sizeof(struct in_addr) );
+            global_filetable->nodes[global_filetable->numfiles].num_peers++;
+            global_filetable->numfiles++;
+            pthread_mutex_unlock(filetable_mutex);
+        }
+    }
+
+    // 2 .     broadcastFileTable(recv_seg);
+
+
+
+*/
+}
+
+
 void tracker_stop(){
     if (listening_socket_fd >=0){
         close(listening_socket_fd);
     }
+    pthread_mutex_destroy(filetable_mutex);
     printf("Exiting Tracker\n");
 }

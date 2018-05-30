@@ -21,6 +21,12 @@
 
 #define PEER_CLOSE 3
 
+#define ADDED 4
+
+#define DELETED 5
+
+#define MODIFIED 6
+
 #define TRACKER_PORT 3465
 #define PEERTOPEER_PORT 3318
 
@@ -35,6 +41,7 @@
 #define MAX_FILES 20
 #define FILE_NAME_LEN 20
 
+#define MAX_CONCURRENT_DOWNLOADS 5
 
 
 

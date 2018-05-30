@@ -1,11 +1,11 @@
 #ifndef PEER_H
 #define PEER_H
 
-typedef struct filetemp{		//PLACEHOLDER
-	char data[50];
+
+typedef struct current_downloads{		//curent downloads
+    char files[MAX_CONCURRENT_DOWNLOADS * FILE_NAME_LEN];
+    int num_downloads;
 }file_t;
-
-
 
 void peer_stop();
 
@@ -17,6 +17,5 @@ void peer_stop();
 
 void *monitor(void *arg);
 void add_watches(int fd, char *root);
-
-
+void *modify(void *arg);
 #endif //PEER_H

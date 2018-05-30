@@ -26,8 +26,9 @@ typedef struct node{
 	int status;
 	int size;
 	char filename[FILE_NAME_LEN];
-	time_t lastest_timestamp;
-	char IP_Peers_with_latest_file[MAX_PEER_SLOTS];
+	time_t latest_timestamp;
+	struct in_addr IP_Peers_with_latest_file[MAX_PEER_SLOTS];
+    int num_peers;
 	char OGPeer[IP_LEN];
 } node_t;
 
@@ -54,10 +55,10 @@ typedef struct segment_peer {
 	char peer_ip[IP_LEN];
 	// listening port number in p2p
 	int port;
-	// the number of files in the local file table -- optional
-	int file_table_size;
 	// file table of the client -- your own design
 	struct fileTable file_table;
+    // file info
+    struct node file_information;
 }ptp_peer_t;
 
 
