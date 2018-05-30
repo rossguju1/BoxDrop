@@ -298,7 +298,6 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                         *///peer_downloads->files
                         // missing file
                         // 2. go download from peer
-                        // 3. remove from peer downloads after download successful
                         // 4. add modified done and send to
                         continue;
                     }
@@ -709,6 +708,11 @@ void downloadFromPeer(){
 
 void file_modified( char * file_name)
 {
+    /*
+     * this is triggered locally when a file is modified by user him/herself
+     *
+     *
+     * */
     char current_file_name[FILE_NAME_LEN];
     memcpy(current_file_name, file_name, sizeof(current_file_name)  );
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
@@ -722,6 +726,11 @@ void file_modified( char * file_name)
 
 void file_created ( char * file_name)
 {
+    /*
+     * this is triggered locally when a file is created by user him/herself
+     *
+     *
+     * */
     char current_file_name[FILE_NAME_LEN];
     memcpy(current_file_name, file_name, sizeof(current_file_name)  );
     printf("Comparing current filename %s", current_file_name);
@@ -737,6 +746,12 @@ void file_created ( char * file_name)
 
 void file_deleted (char *file_name)
 {
+    /*
+     * this is triggered locally when a file is deleted by user him/herself
+     *
+     *
+     * */
+
     char current_file_name[FILE_NAME_LEN];
     memcpy(current_file_name, file_name, sizeof(current_file_name)  );
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
