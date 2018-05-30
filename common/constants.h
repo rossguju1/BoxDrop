@@ -27,6 +27,8 @@
 
 #define MODIFIED 6
 
+#define MODIFIED_DONE 7
+
 #define TRACKER_PORT 3465
 #define PEERTOPEER_PORT 3318
 

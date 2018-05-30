@@ -281,6 +281,7 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
 
         // 2 cases
         //case 1
+        // global table has more files than peer
         for (int i = 0 ; i< receivedseg->file_table.numfiles; i++)
         {
             if (inDirectory(receivedseg->file_table.nodes[i].filename) == false)
@@ -296,6 +297,7 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                         // missing file
                         // 2. go download from peer
                         // 3. remove from peer downloads after download successful
+                        // 4. add modified done and send to
                         continue;
                     }
                 }
@@ -312,7 +314,7 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
 
         //case 2 = extra fies
         //char * file_names = get_all_files_locally();
-        struct file_name  names = get_all_files_locally();
+        //struct file_name  names = get_all_files_locally();
         //int num_of_files = get_number_of_files_locally();
         int num_of_files = 0;
         char * file_names = NULL;
@@ -703,6 +705,46 @@ void downloadFromPeer(){
 }
 
 
+void file_modified( char * file_name)
+{
+    char current_file_name[FILE_NAME_LEN];
+    memcpy(current_file_name, file_name, sizeof(current_file_name)  );
+    ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
+    segtosend->type = FILE_UPDATE;
+    memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
+    segtosend->file_information.status = MODIFIED;
+    segtosend->file_information.file_name_size = strlen(file_name);
+    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+    free(segtosend);
+}
+
+void file_created ( char * file_name)
+{
+    char current_file_name[FILE_NAME_LEN];
+    memcpy(current_file_name, file_name, sizeof(current_file_name)  );
+    printf("Comparing current filename %s", current_file_name);
+    ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
+    segtosend->type = FILE_UPDATE;
+    memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
+    segtosend->file_information.latest_timestamp = time(NULL);
+    segtosend->file_information.status = ADDED;
+    segtosend->file_information.file_name_size = strlen(file_name);
+    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+    free(segtosend);
+}
+
+void file_deleted (char *file_name)
+{
+    char current_file_name[FILE_NAME_LEN];
+    memcpy(current_file_name, file_name, sizeof(current_file_name)  );
+    ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
+    segtosend->type = FILE_UPDATE;
+    memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
+    segtosend->file_information.status = DELETED;
+    segtosend->file_information.file_name_size = strlen(file_name);
+    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+    free(segtosend);
+}
 
 void *monitor(void *arg) {
     // see if directory exists
@@ -810,6 +852,7 @@ void *monitor(void *arg) {
                                 {
                                     printf("FILE::%s CREATED\n", event->name);
                                     file_added = true;
+                                    file_created(event->name);
                                 }
 
                             }
@@ -862,6 +905,7 @@ void *monitor(void *arg) {
                             else
                             {
                                 printf("FILE::%s DELETED\n", event->name );
+                                file_deleted(event->name);
                             }
 
                         }
@@ -892,12 +936,15 @@ void *monitor(void *arg) {
     return NULL;
 }
 
+
+
 void *modify(void *arg) {
     modifying_global = false;
     sleep(1);
     char * file_name = ((char *) arg);
    // char * file_name = *(char*)arg;
-    printf("file modified: %s\n", file_name);
+    file_modified(file_name);
     modifying_global = true;
     pthread_exit(NULL);
 }
+

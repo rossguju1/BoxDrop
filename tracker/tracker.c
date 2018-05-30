@@ -250,7 +250,7 @@ void* handshake(void* arg) {
 
 		} else if (receivedseg->type == FILE_UPDATE){
 			printf("Peer sent file update\n");
-            handleFileUpdate(receivedseg, &peerIP);
+            handleFileUpdate(receivedseg, &peerIP, sockfd);
 		} else if (receivedseg->type == PEER_CLOSE){
 			printf("Peer sent close\n");
 			disconnectpeer(tableindex);
@@ -316,25 +316,56 @@ void disconnectpeer(int index){
 }
 
 
-void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip){
+void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip, int sockfd){
     // 1.     updateFileTableAfterUpdate(recv_seg);
 
     if (recv_seg->file_information.status == DELETED)
 	{
 		//updateFileTable(recv_seg->file_information);g]
-		if (global_filetable->nodes[0].filename == recv_seg->file_information.filename)
-		for(int i = 0 ; i <global_filetable->nodes[global_filetable->numfiles].num_peers; i++)
+		for (int i = 0 ; i < global_filetable->numfiles; i++)
 		{
-			continue;
+			if (strncmp(global_filetable->nodes[i].filename, recv_seg->file_information.filename, recv_seg->file_information.file_name_size)==0)
+			{
+				pthread_mutex_lock(filetable_mutex);
+				global_filetable->nodes[i].status = DELETED;
+				pthread_mutex_unlock(filetable_mutex);
+			}
+
 		}
 
 	}
 	else if (recv_seg->file_information.status == MODIFIED)
 	{
+		for (int i = 0 ; i < global_filetable->numfiles; i++) {
+			if (strncmp(global_filetable->nodes[i].filename, recv_seg->file_information.filename,
+						recv_seg->file_information.file_name_size) == 0) {
+				pthread_mutex_lock(filetable_mutex);
+				global_filetable->nodes[i].latest_timestamp = recv_seg->file_information.latest_timestamp;
+				struct in_addr* desttocopy = &(global_filetable->nodes[i].IP_Peers_with_latest_file[0]);
+				memcpy(desttocopy, ip, sizeof(struct in_addr) );
+				global_filetable->nodes[i].num_peers = 1;
+				pthread_mutex_unlock(filetable_mutex);
+			}
+		}
+
+	}
+
+	else if (recv_seg->file_information.status == MODIFIED_DONE)
+	{
+		for (int i = 0 ; i < global_filetable->numfiles; i++) {
+			if (strncmp(global_filetable->nodes[i].filename, recv_seg->file_information.filename,
+						recv_seg->file_information.file_name_size) == 0) {
+				pthread_mutex_lock(filetable_mutex);
+				struct in_addr* desttocopy = &(global_filetable->nodes[i].IP_Peers_with_latest_file[global_filetable->nodes[i].num_peers]);
+				memcpy(desttocopy, ip, sizeof(struct in_addr) );
+				global_filetable->nodes[i].num_peers++;
+				pthread_mutex_unlock(filetable_mutex);
+			}
+		}
 
 	}
     else{
-        if (!global_filetable->numfiles >= MAX_FILES)
+        if (global_filetable->numfiles <= MAX_FILES)
         {
             pthread_mutex_lock(filetable_mutex);
             global_filetable->nodes[global_filetable->numfiles].status = ADDED;
@@ -343,7 +374,6 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip){
                    sizeof(recv_seg->file_information.filename));
 
             //TODO: enter ip in list of ips
-
             struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[0]);
             memcpy(desttocopy, ip, sizeof(struct in_addr) );
             global_filetable->nodes[global_filetable->numfiles].num_peers++;
@@ -352,10 +382,17 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip){
         }
     }
 
-    // 2 .     broadcastFileTable(recv_seg);
+    // 2 .  broadcast file table to other peers;
+	for (int i = 0; i < MAX_PEER_SLOTS; i++) {
+		if (tracker_side_peer_table[i] != NULL && tracker_side_peer_table[i]->sockfd != sockfd) {
+			ptp_tracker_t* segtosend = malloc(sizeof(ptp_tracker_t) );
+			segtosend->file_table_size = global_filetable->numfiles;
+			memcpy(&(segtosend->file_table), global_filetable, sizeof(fileTable_t));
+			printf("%s\n","Sending to peer" );
+			send(tracker_side_peer_table[i]->sockfd , segtosend , sizeof(ptp_tracker_t), 0 );
 
-
-
+		}
+	}
 
 }
 
