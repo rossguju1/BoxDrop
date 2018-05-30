@@ -198,30 +198,32 @@ int main(const int argc, char *argv[])
 
 bool inDirectory(char * file_name)
 {
-    return false;
-//    DIR *DIRp = opendir(".");
-//
-//// 	if (DIRp == NULL)
-//// 	{
-//// 		printf("Could not open dropbox root directory" );
-//// 		return NULL;
-//// 	}
-//// 	fileTable_t *localFileTable = create_fileTable();
-//// 	// printf("file number %d \n", get_number_of_files());
-//
-//// 	while ((DIRentry = readdir(DIRp)) != NULL) {
-//
-//
-//
-//// 		int size = get_file_size(DIRentry->d_name);
-//
-//// 		if (node_insert(localFileTable, DIRentry->d_name, (size - 2), timestamp, ip_address)) {
-//
-//// 			continue;
-//// 		}
-//
-//// 	}
-//// 	closedir(DIRp);
+	struct dirent *DIRentry;
+
+	DIR *DIRp = opendir(".");
+
+	if (DIRp == NULL)
+	{
+		printf("Could not open dropbox root directory" );
+		return NULL;
+	}
+//    fileTable_t *localFileTable = create_fileTable();
+//    // printf("file number %d \n", get_number_of_files());
+
+
+	while ((DIRentry = readdir(DIRp)) != NULL) {
+		int size = get_file_size(DIRentry->d_name);
+
+		if (strcmp(DIRentry->d_name, file_name) == 0) {
+			return true;
+		} else {
+			continue;
+		}
+	}
+
+	closedir(DIRp);
+
+	return false;
 }
 bool isInCurrentDownloads(node_t * nodes)
 {
