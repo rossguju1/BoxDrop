@@ -19,7 +19,7 @@ VALGRIND = valgrind --leak-check=full --show-leak-kinds=all
 
 all: $(PROGS)
 
-peer: peer.o $(C)/file.o 
+peer: peer.o $(C)/file.o $(C)/filetable.o
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 ##### source dependencies

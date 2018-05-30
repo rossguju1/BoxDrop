@@ -10,7 +10,7 @@ C = ../common
 PROGS = tracker
 LIBS = -pthread
 
-CFLAGS = -Wall -pedantic -w -std=c11 -ggdb -I$C
+CFLAGS = -Wall -pedantic -std=c11 -ggdb -I$C
 CC = gcc
 MAKE = make
 
@@ -19,7 +19,7 @@ VALGRIND = valgrind --leak-check=full --show-leak-kinds=all
 
 all: $(PROGS)
 
-tracker: tracker.o
+tracker: tracker.o $(C)/filetable.o
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 ##### source dependencies

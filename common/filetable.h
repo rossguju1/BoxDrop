@@ -1,47 +1,43 @@
 #ifndef FILETABLE_H
 #define FILETABLE_H
 
+#include "constants.h"
+
+// typedef struct node {
+// 	int status;
+// 	int size;
+// 	char *filename;
+// 	unsigned long int timestamp;
+// //pointer to build the linked list
+// 	struct node *next;
+// //for the file table on peers, it is the ip address of the peer
+// //for the file table on tracker, it records the ip of all peers which has the
+// //newest edition of the file
+// 	char* newpeerip;
+// 	char* OGPeer; // original ganster peer that added the file
+// } Node_t;
+
+// typedef struct fileTable {
+// 	struct node *head;
+// } fileTable_t;
 
 
-typedef struct node {
-
-	int status;
-//the size of the file
-	int size;
-//the name of the file
-	char *filename;
-//the timestamp when the file is modified or created
-	unsigned long int timestamp;
-//pointer to build the linked list
-	struct node *next;
-//for the file table on peers, it is the ip address of the peer
-//for the file table on tracker, it records the ip of all peers which has the
-//newest edition of the file
-	char* newpeerip;
-
-	char* OGPeer; // original ganster peer that added the file
-
-} Node_t;
-
-typedef struct portable_node{
+typedef struct node{
 	int status;
 	int size;
 	char filename[FILE_NAME_LEN];
-	time_t timestamp;
-	char newpeerip[MAX_PEER_SLOTS];
+	time_t lastest_timestamp;
+	char IP_Peers_with_latest_file[MAX_PEER_SLOTS];
 	char OGPeer[IP_LEN];
-} portable_node_t;
+} node_t;
 
-typedef struct portable_fileTable{
+typedef struct fileTable{
 	int numfiles;
-	struct portable_node nodes[MAX_FILES];
-} portable_fileTable_t;
-
-
-
-typedef struct fileTable {
-	struct node *head;
+	struct node nodes[MAX_FILES];
 } fileTable_t;
+
+
+
 
 
 /* The packet data structure sending from peer to tracker */
@@ -61,7 +57,7 @@ typedef struct segment_peer {
 	// the number of files in the local file table -- optional
 	int file_table_size;
 	// file table of the client -- your own design
-	struct portable_fileTable file_table;
+	struct fileTable file_table;
 }ptp_peer_t;
 
 
@@ -74,35 +70,34 @@ typedef struct segment_tracker{
 	// file number in the file table -- optional
 	int file_table_size;
 	// file table of the tracker -- your own design
-	struct portable_fileTable file_table;
+	struct fileTable file_table;
 } ptp_tracker_t;
 
-Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
 
-fileTable_t *create_fileTable(void);
+fileTable_t *create_fileTable();
 
-Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
+// Node_t *node_new(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip, char* OGPeer);
 
-bool node_insert(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip);
+// bool node_insert(fileTable_t* table, char *filename, int size, unsigned long int timestamp, char *newpeerip);
 
-char* get_ip_file(fileTable_t *table, char* filename);
+// char* get_ip_file(fileTable_t *table, char* filename);
 
-char* get_originalip_file(fileTable_t *table, char* filename);
+// char* get_originalip_file(fileTable_t *table, char* filename);
 
-unsigned long int get_file_timestamp(fileTable_t *table, char* filename);
+// unsigned long int get_file_timestamp(fileTable_t *table, char* filename);
 
-void deleter(fileTable_t *table, char* filename);
+// void deleter(fileTable_t *table, char* filename);
 
 
-fileTable_t *fileTable_REGISTER();
+// fileTable_t *fileTable_REGISTER();
 
-int check_update_local(fileTable_t* localFiletable, fileTable_t* trackerFile_table);
+// int check_update_local(fileTable_t* localFiletable, fileTable_t* trackerFile_table);
 
-int check_update_tracker(fileTable_t* localFiletable, fileTable_t* trackerFile_table);
+// int check_update_tracker(fileTable_t* localFiletable, fileTable_t* trackerFile_table);
 
-bool find_file(fileTable_t *table, char* filename);
+// bool find_file(fileTable_t *table, char* filename);
 
-int check_modified(fileTable_t* write_update_table, fileTable_t* read_update_table);
+// int check_modified(fileTable_t* write_update_table, fileTable_t* read_update_table);
 
 
 

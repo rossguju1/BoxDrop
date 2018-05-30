@@ -29,6 +29,7 @@
 //#include "trackertable.h"
 #include "../common/constants.h"
 #include "../common/filetable.h"
+#include "../common/file.h"
 #include "tracker.h"
 
 /****** local functions *********/
@@ -49,9 +50,6 @@ fileTable_t *global_filetable;
 //Listen on handshake port
 
 
-
-
-#define MAX_PEER_SLOTS 10
 
 //void *main_pthread();
 
@@ -170,7 +168,7 @@ void tracker_init(){
 		tracker_side_peer_table[i] = NULL; //Set all entries in the table to NULL
 	}
 
-	//global_filetable = create_fileTable();
+	global_filetable = create_fileTable();
 
 	//Also remember mutexes
 
@@ -180,8 +178,8 @@ void tracker_init(){
 //Function to handle new peer
 int new_peer(int sockfd, struct in_addr peerIP){
 	//looks up the peer to find the first 
-  //NULL entry, and creates a new peer entry using malloc() for that 
-  //entry.
+	//NULL entry, and creates a new peer entry using malloc() for that 
+	//entry.
   for (int i = 0; i < MAX_PEER_SLOTS; i++) {
     if (tracker_side_peer_table[i] == NULL){
       tracker_side_peer_table[i] = malloc ( sizeof(struct _tracker_side_peer_t) );
@@ -196,9 +194,6 @@ int new_peer(int sockfd, struct in_addr peerIP){
         memcpy(tracker_side_peer_table[i]->ip, ip ,IP_LEN);
 		tracker_side_peer_table[i]->last_time_stamp = time(NULL);
 
-		// //Create a handshake thread
-		// pthread_t handshake_thread;
-		// pthread_create(&handshake_thread, NULL, handshake, (void *) sockfd);
 
 		printf("Client connected with IP %s\n",tracker_side_peer_table[i]->ip);  
         return i;
@@ -214,7 +209,6 @@ int new_peer(int sockfd, struct in_addr peerIP){
 
 //Handshake thread, individual for each peer
 void* handshake(void* arg) {
-	printf("%s\n","new handshake thread" );
 	int tableindex = -1; //The index of the current peer in tracker_side_peer_table[]
 
 	//Parse input and free input memory
@@ -223,6 +217,7 @@ void* handshake(void* arg) {
 	struct in_addr peerIP = toHandshakeThread->sin_addr;
 	free(arg);
 
+	printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
 	ptp_peer_t* receivedseg = malloc(sizeof(ptp_peer_t) );
 	ptp_tracker_t* segtosend = malloc(sizeof(ptp_tracker_t) );
 
@@ -230,15 +225,15 @@ void* handshake(void* arg) {
 	while( (read( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
 		//Keep reading until error occours
 		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
-			printf("Peer trying to register\n");
+			printf("RECEIVED REGISTER\n");
 			tableindex = new_peer(sockfd, peerIP);
 			if (tableindex >= 0){
-			 	//Acknowledge register
-			 	//int filetablesize = get_num_files_filetable(global_filetable);
+			 	//Acknowledge registration from peer
 			 	segtosend->interval = HEARTBEAT_INTERVAL;
 			 	segtosend->piece_len = PIECE_LEN;
-			 	//segtosend->file_table_size = filetablesize;
-			 	//segtosend->file_table = get_portable_filetable(global_filetable);
+			 	segtosend->file_table_size = global_filetable->numfiles;
+			 	memcpy(&(segtosend->file_table), global_filetable, sizeof(fileTable_t));
+			 	printf("%s\n","Sending to peer" );
 			 	send(sockfd , segtosend , sizeof(ptp_tracker_t), 0 );			 		
 
 			} else {
@@ -247,6 +242,7 @@ void* handshake(void* arg) {
 			} 
 
 		} else if (receivedseg->type == KEEP_ALIVE){
+			printf("%s\n","RECEIVED KEEPALIVE" );
 			if (tracker_side_peer_table[tableindex] != NULL){
 				tracker_side_peer_table[tableindex]->last_time_stamp = time(NULL);
 			}
@@ -266,7 +262,7 @@ void* handshake(void* arg) {
 	free(receivedseg);
 	free(segtosend);
 	disconnectpeer(tableindex);
-	return;
+	return NULL;
 
  
 
@@ -288,9 +284,7 @@ void *monitor_peers()
 			count++;
 			   time_t currenttime = time(NULL);
 			   int difference = (int) (currenttime - tracker_side_peer_table[i]->last_time_stamp);
-			   printf("difference is %d\n",difference );
 			   if (difference > HEARTBEAT_TIMEOUT){
-
 			   	//Disconnect the client
 			   	disconnectpeer(i);
 			   }

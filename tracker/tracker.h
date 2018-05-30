@@ -48,5 +48,6 @@ typedef struct handshake_seg {
 // void tracker_send(tracker_table_t *table, );
 
 int connect_to_peer();
+void disconnectpeer(int index);
 
 #endif //TRACKER_H

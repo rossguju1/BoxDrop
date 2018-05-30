@@ -22,6 +22,9 @@
 #define PEER_CLOSE 3
 
 #define TRACKER_PORT 3465
+#define PEERTOPEER_PORT 3318
+
+#define FILETRANSFER_BUFSIZE 2048
 
 #define DIRECTORY_NAME "DROPBOX_TEAMDDOS"
 
@@ -36,7 +39,6 @@
 
 
 #endif // CONSTANTS_H
-
 
 
 
