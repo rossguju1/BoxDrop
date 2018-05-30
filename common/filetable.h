@@ -26,6 +26,7 @@ typedef struct node{
 	int status;
 	int size;
 	char filename[FILE_NAME_LEN];
+	int file_name_size;
 	time_t latest_timestamp;
 	struct in_addr IP_Peers_with_latest_file[MAX_PEER_SLOTS];
     int num_peers;

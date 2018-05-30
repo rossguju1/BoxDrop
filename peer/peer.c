@@ -269,7 +269,7 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                 printf ("Ip of peer %d is \n",j);
                 char newip[15];
                 inet_ntop(AF_INET, &(currentfile->IP_Peers_with_latest_file[j]),newip,sizeof(newip) );
-                for (int k=0;k<15;k++ ){
+                for (int k=0;k<5;k++ ){
                     printf("%c",newip[k]);
                 }
                 printf("\n");
@@ -291,7 +291,7 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                     {
                         //1. add to peer downloads
                         /*peer_downloads->num_downloads++;
-                        memcpy(peer_downloads)
+                        memcpy(peer_downloads)a
                         *///peer_downloads->files
                         // missing file
                         // 2. go download from peer
@@ -312,6 +312,7 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
 
         //case 2 = extra fies
         //char * file_names = get_all_files_locally();
+        struct file_name  names = get_all_files_locally();
         //int num_of_files = get_number_of_files_locally();
         int num_of_files = 0;
         char * file_names = NULL;

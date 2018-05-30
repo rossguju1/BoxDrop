@@ -7,6 +7,13 @@ typedef struct current_downloads{		//curent downloads
     int num_downloads;
 }file_t;
 
+typedef struct file_name{
+    char[MAX_LEN] name;
+    int name_lenght;
+
+};
+
+
 void peer_stop();
 
 #define MAX_LEN 1024 /*Path length for a directory*/

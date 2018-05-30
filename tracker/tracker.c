@@ -319,14 +319,21 @@ void disconnectpeer(int index){
 void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip){
     // 1.     updateFileTableAfterUpdate(recv_seg);
 
-/*    if (recv_seg->file_information.status = DELETED || recv_seg->file_information.status = MODIFIED)
-        updateFileTable(recv_seg->file_information);
-    for(int i = 0 ; i <global_filetable->nodes[global_filetable->numfiles].num_peers; i++)
-    {
+    if (recv_seg->file_information.status == DELETED)
+	{
+		//updateFileTable(recv_seg->file_information);g]
+		if (global_filetable->nodes[0].filename == recv_seg->file_information.filename)
+		for(int i = 0 ; i <global_filetable->nodes[global_filetable->numfiles].num_peers; i++)
+		{
+			continue;
+		}
 
-    }
+	}
+	else if (recv_seg->file_information.status == MODIFIED)
+	{
+
+	}
     else{
-        // added
         if (!global_filetable->numfiles >= MAX_FILES)
         {
             pthread_mutex_lock(filetable_mutex);
@@ -349,7 +356,7 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip){
 
 
 
-*/
+
 }
 
 
