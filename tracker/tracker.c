@@ -253,7 +253,7 @@ void* handshake(void* arg) {
 			disconnectpeer(tableindex);
 		}
 		 else {
-			printf("Unknown type of segment received for sockfd %d\n",sockfd );
+			printf("Unknown type of segment received for sockfd %d , %d\n",sockfd, receivedseg->type );
 		}
 
 	}

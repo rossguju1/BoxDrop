@@ -460,22 +460,15 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
             {
                 // send file update to tracker
                 ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
-                printf("HHASD \n");
-                printf("HHASD2 %s %d \n", current_file_name, files[i].name_length);
                 segtosend->type = FILE_UPDATE;
                 memcpy(segtosend->file_information.filename, current_file_name, files[i].name_length);
-                printf("HHASD3 \n");
                 segtosend->file_information.file_name_size = files[i].name_length;
-                printf("HHASD4 \n");
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
-                printf("HHASD5 \n");
                 pthread_mutex_lock(sendtotracker_mutex);
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
-                printf("HHASD6 \n");
                 pthread_mutex_unlock(sendtotracker_mutex);
                 memset(&current_file_name, 0, sizeof(current_file_name));
-                printf("HHASD7 \n");
                 free(segtosend);
             }
         }
