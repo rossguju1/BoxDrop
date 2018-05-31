@@ -450,7 +450,6 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
         for(int i = 0 ; i <num_of_files; i++)
         {
 
-
             printf("Filetable content name is: %s\n",  files[i].name);
             printf("Name length is %d\n",files[i].name_length );
 

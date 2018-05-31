@@ -271,13 +271,12 @@ void* handshake(void* arg) {
 void broadcast_to_all_peers_except( int excluded_sockfd){
 	for (int i = 0; i < MAX_PEER_SLOTS; i++) {
 		if (tracker_side_peer_table[i] != NULL && tracker_side_peer_table[i]->sockfd != excluded_sockfd) {
-			broadcast_to_peer(tracker_side_peer_table[i]->sockfd);
+			//broadcast_to_peer(tracker_side_peer_table[i]->sockfd);
 		}
 	}		
 }
 //Sends the updated filetable along with other stuff to given peer sockfd
 void broadcast_to_peer(int peer_sockfd){
-    printf("Broadcasting to peer \n");
 	ptp_tracker_t* segtosend = malloc(sizeof(ptp_tracker_t) );
 	segtosend->interval = HEARTBEAT_INTERVAL;
 	segtosend->piece_len = PIECE_LEN;
