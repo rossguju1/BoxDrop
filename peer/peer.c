@@ -464,7 +464,9 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                 segtosend->file_information.file_name_size = files[i].name_length;
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
+                pthread_mutex_lock(sendtotracker_mutex);
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                pthread_mutex_unlock(sendtotracker_mutex);
                 memset(&current_file_name, 0, sizeof(current_file_name));
                 memset(&segtosend, 0, sizeof(segtosend));
                 free(segtosend);
@@ -846,7 +848,9 @@ void file_modified( char * file_name)
     memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
     segtosend->file_information.status = MODIFIED;
     segtosend->file_information.file_name_size = strlen(file_name);
+    pthread_mutex_lock(sendtotracker_mutex);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+    pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 }
 
@@ -866,7 +870,9 @@ void file_created ( char * file_name)
     segtosend->file_information.latest_timestamp = time(NULL);
     segtosend->file_information.status = ADDED;
     segtosend->file_information.file_name_size = strlen(file_name);
+    pthread_mutex_lock(sendtotracker_mutex);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+    pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 }
 
@@ -885,7 +891,9 @@ void file_deleted (char *file_name)
     memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
     segtosend->file_information.status = DELETED;
     segtosend->file_information.file_name_size = strlen(file_name);
+    pthread_mutex_lock(sendtotracker_mutex);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+    pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 }
 
