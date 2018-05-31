@@ -379,6 +379,7 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip, int sockfd){
             global_filetable->nodes[global_filetable->numfiles].latest_timestamp = recv_seg->file_information.latest_timestamp;
             memcpy(global_filetable->nodes[global_filetable->numfiles].filename, recv_seg->file_information.filename,
                    sizeof(recv_seg->file_information.filename));
+			global_filetable->nodes[global_filetable->numfiles].file_name_size = recv_seg->file_information.file_name_size;
 
             //TODO: enter ip in list of ips
             struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[0]);

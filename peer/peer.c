@@ -436,9 +436,12 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                 ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
                 segtosend->type = FILE_UPDATE;
                 memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
+                segtosend->file_information.file_name_size = files[i]->name_length;
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                memset(&current_file_name, 0, sizeof(current_file_name));
+                memset(&segtosend, 0, sizeof(segtosend));
                 free(segtosend);
             }
         }
