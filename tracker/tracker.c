@@ -277,6 +277,7 @@ void broadcast_to_all_peers_except( int excluded_sockfd){
 }
 //Sends the updated filetable along with other stuff to given peer sockfd
 void broadcast_to_peer(int peer_sockfd){
+    printf("Broadcasting to peer \n");
 	ptp_tracker_t* segtosend = malloc(sizeof(ptp_tracker_t) );
 	segtosend->interval = HEARTBEAT_INTERVAL;
 	segtosend->piece_len = PIECE_LEN;
