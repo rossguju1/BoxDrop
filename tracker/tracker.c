@@ -315,7 +315,14 @@ void disconnectpeer(int index){
 
 }
 
-
+void printfileTable()
+{
+	for (int i = 0 ; i<global_filetable->numfiles;i++)
+	{
+		printf("%s \n", global_filetable->nodes[i].filename);
+		printf("%d \n", global_filetable->nodes[i].file_name_size);
+	}
+}
 void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip, int sockfd){
     // 1.     updateFileTableAfterUpdate(recv_seg);
 
@@ -381,7 +388,7 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr * ip, int sockfd){
             pthread_mutex_unlock(filetable_mutex);
         }
     }
-
+	printfileTable();
     // 2 .  broadcast file table to other peers;
 	for (int i = 0; i < MAX_PEER_SLOTS; i++) {
 		if (tracker_side_peer_table[i] != NULL && tracker_side_peer_table[i]->sockfd != sockfd) {

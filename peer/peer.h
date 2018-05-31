@@ -9,15 +9,15 @@
 
 
 typedef struct current_downloads{		//curent downloads
-    char files[MAX_CONCURRENT_DOWNLOADS * FILE_NAME_LEN];
-    int num_downloads;
+    char file_name[LEN_NAME];
+    int name_length;
 }file_t;
 
 typedef struct file_name{
     char name[MAX_LEN];
     int name_length;
 
-};
+}file_detail;
 
 
 void peer_stop();
@@ -26,4 +26,5 @@ void peer_stop();
 void *monitor(void *arg);
 void add_watches(int fd, char *root);
 void *modify(void *arg);
+void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filename_size);
 #endif //PEER_H

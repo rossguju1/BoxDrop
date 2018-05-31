@@ -115,7 +115,17 @@ void *monitor(void *arg) {
         int length, i = 0;
         int fd;
         char buffer[BUF_LEN], root[MAX_LEN];
-
+        char hehe[MAX_LEN];
+        strcpy(hehe,DIRECTORY_NAME);
+        if(root[strlen(hehe)-1]!='/')
+            strcat(hehe,"/");
+        strcat(hehe, "food.odt");
+        int ret = remove(hehe);
+        if(ret == 0) {
+            printf("File deleted successfully");
+        } else {
+            printf("Error: unable to delete the %s file", hehe);
+        }
 
         strcpy(root,DIRECTORY_NAME);
         if(root[strlen(root)-1]!='/')

@@ -26,7 +26,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <signal.h>
-//#include "trackertable.h"
 #include "../common/constants.h"
 #include "peer.h"
 #include "../common/filetable.h"
@@ -47,7 +46,8 @@ int interval = -1;
 int piece_len = -1;
 bool modifying_global = true;
 bool file_added = true;
-struct current_downloads * peer_downloads;
+file_t * peer_downloads[MAX_CONCURRENT_DOWNLOADS];
+file_detail *files[MAX_FILES];
 
 pthread_mutex_t *sendtotracker_mutex; //routing_table mutex
 
@@ -149,7 +149,7 @@ int main(const int argc, char *argv[])
     }
     printf("\n\n%s\n","Peer Socket created" );
 
-    
+
     memset(&address, '0', sizeof(address));
     address.sin_family = AF_INET;
     address.sin_port = htons(TRACKER_PORT);
@@ -196,11 +196,11 @@ int main(const int argc, char *argv[])
 	
 }
 
-bool inDirectory(char * file_name)
+bool inDirectory(char * file_name ,int name_size)
 {
 	struct dirent *DIRentry;
 
-	DIR *DIRp = opendir(".");
+	DIR *DIRp = opendir(DIRECTORY_NAME);
 
 	if (DIRp == NULL)
 	{
@@ -214,7 +214,7 @@ bool inDirectory(char * file_name)
 	while ((DIRentry = readdir(DIRp)) != NULL) {
 		int size = get_file_size(DIRentry->d_name);
 
-		if (strcmp(DIRentry->d_name, file_name) == 0) {
+		if (strncmp(DIRentry->d_name, file_name, name_size) == 0) {
 			return true;
 		} else {
 			continue;
@@ -225,10 +225,35 @@ bool inDirectory(char * file_name)
 
 	return false;
 }
-bool isInCurrentDownloads(node_t * nodes)
+
+void removeFromCurrentDownloads(char * file_name, char * file_name_size)
 {
+    for(int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
+    {
+        if(peer_downloads[i]!= NULL)
+        {
+            if(strncmp(file_name, peer_downloads[i]->file_name, file_name_size) == 0)
+            {
+                free(peer_downloads[i]->file_name);
+                peer_downloads[i]=NULL;
+            }
+        }
+    }
+}
+
+bool isInCurrentDownloads(char * file_name, char * file_name_size)
+{
+    for(int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
+    {
+        if(peer_downloads[i]!= NULL)
+        {
+            if(strncmp(file_name, peer_downloads[i]->file_name, file_name_size) == 0)
+            {
+                return true;
+            }
+        }
+    }
     return false;
-    //
 
 }
 
@@ -250,7 +275,7 @@ bool CheckInFileTable(char * current_file_name,struct fileTable file_table)
 
 		memcpy(temp, file_table.nodes[i].filename, sizeof(file_table.nodes[i].filename));
 
-		if (strcmp(temp, current_file_name) == 0) {
+		if (strncmp(temp, current_file_name,file_table.nodes[i].file_name_size) == 0) {
 			return true;
 		} else {
 
@@ -260,12 +285,72 @@ bool CheckInFileTable(char * current_file_name,struct fileTable file_table)
 	return false;
 }
 
+int get_number_of_files_locally()
+{
+    struct dirent *DIRentry;
+
+    DIR *DIRp = opendir(DIRECTORY_NAME);
+    for (int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
+    {
+        free(peer_downloads[i]->file_name);
+        peer_downloads[i]=NULL;
+    }
+    if (DIRp == NULL)
+    {
+        printf("Could not open dropbox root directory" );
+        return NULL;
+    }
+    int count = 0;
+    while ((DIRentry = readdir(DIRp)) != NULL) {
+        count++;
+    }
+
+    closedir(DIRp);
+    return count;
+}
+
+void get_all_files_locally()
+{
+    struct dirent *DIRentry;
+    DIR *DIRp = opendir(DIRECTORY_NAME);
+    if (DIRp == NULL)
+    {
+        printf("Could not open dropbox root directory\n" );
+        return NULL;
+    }
+    int count = 0;
+    while ((DIRentry = readdir(DIRp)) != NULL) {
+        file_detail * temp;
+        temp = (file_detail *)malloc(sizeof(file_detail));
+        memcpy(temp->name, DIRentry->d_name, strlen(DIRentry->d_name));
+        temp->name_length = strlen(DIRentry->d_name);
+        files[count] = temp;
+        count++;
+    }
+    closedir(DIRp);
+}
+
+void remove_locally(char * file_name, int file_size){
+    char root[MAX_LEN];
+    strcpy(root,DIRECTORY_NAME);
+    if(root[strlen(root)-1]!='/')
+        strcat(root,"/");
+    strcat(root, file_name);
+    int ret = remove(root);
+    if(ret == 0) {
+        printf("File %s deleted successfully", file_name);
+    } else {
+        printf("Error: unable to delete the file");
+    }
+}
 
 void talkto_tracker(){
-    
     //First register
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
-    peer_downloads = malloc(sizeof(struct current_downloads));
+    for (int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
+    {
+        peer_downloads[i]=NULL;
+    }
     segtosend->type = REGISTER;
     //printf("%s\n","SENDING REGISTER" );
     pthread_mutex_lock(sendtotracker_mutex); 
@@ -297,9 +382,6 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                 printf ("Ip of peer %d is \n",j);
                 char newip[15];
                 inet_ntop(AF_INET, &(currentfile->IP_Peers_with_latest_file[j]),newip,sizeof(newip) );
-                for (int k=0;k<5;k++ ){
-                    printf("%c",newip[k]);
-                }
                 printf("\n");
                 printf("%s",newip);
                 printf("\nAn ip should be printed by now\n");
@@ -312,44 +394,42 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
         // global table has more files than peer
         for (int i = 0 ; i< receivedseg->file_table.numfiles; i++)
         {
-            if (inDirectory(receivedseg->file_table.nodes[i].filename) == false)
+            if (inDirectory(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size) == false)
             {
-                if (peer_downloads->num_downloads <= MAX_CONCURRENT_DOWNLOADS)
+                if (!isInCurrentDownloads(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size))
                 {
-                    if (!isInCurrentDownloads(receivedseg->file_table.nodes), peer_downloads)
+                    for (int j = 0 ; j < MAX_CONCURRENT_DOWNLOADS ; j++)
                     {
-                        //1. add to peer downloads
-                        /*peer_downloads->num_downloads++;
-                        memcpy(peer_downloads)a
-                        *///peer_downloads->files
-                        // missing file
-                        // 2. go download from peer
-                        // 4. add modified done and send to
-                        continue;
+                        if(peer_downloads[i] != NULL)
+                        {
+                            file_t * temp;
+                            temp = (file_t *)malloc(sizeof(file_t));
+                            memcpy(temp->file_name, receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
+                            temp->name_length = receivedseg->file_table.nodes[i].file_name_size;
+                            peer_downloads[i] = temp;
+                            break;
+                        }
                     }
+                    //TODO: DOWNLOAD FILE NOW AND REMOVE FROM PEER DOWNLOADS AFTER DONE
+                    downloadFromPeer(receivedseg->file_table.nodes[i].IP_Peers_with_latest_file[0], receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
                 }
-
 
             }
             else{
                 if (receivedseg->file_table.nodes[i].status == DELETED)
                 {
-                    //remove_locally(receivedseg->file_table.nodes[i].filename);
+                    remove_locally(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
                 }
             }
         }
 
         //case 2 = extra fies
-        //char * file_names = get_all_files_locally();
-        //struct file_name  names = get_all_files_locally();
-        //int num_of_files = get_number_of_files_locally();
-        int num_of_files = 0;
-        char * file_names = NULL;
+        get_all_files_locally();
+        int num_of_files = get_number_of_files_locally();
         for(int i = 0 ; i <num_of_files; i++)
         {
             char current_file_name[FILE_NAME_LEN];
-            memcpy(current_file_name, file_names[i*FILE_NAME_LEN], sizeof(current_file_name)  );
-            printf("Comparing current filename %s", current_file_name);
+            memcpy(current_file_name, files[i]->name, files[i]->name_length);
             if (!CheckInFileTable(current_file_name, receivedseg->file_table))
             {
                 // send file update to tracker
@@ -360,7 +440,6 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                 segtosend->file_information.status = ADDED;
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
                 free(segtosend);
-
             }
         }
 //        struct dirent *DIRentry;  // Pointer for directory entry
@@ -413,8 +492,6 @@ void* keepAlive(void* arg) {
         }
 
     }
-
-
     return NULL;
     }
 
@@ -503,8 +580,6 @@ void* listen_to_peer(){
     
       // pthread_join( thread_id , NULL);     
       // printf("Connection ended\n");
-      
-      
       /* Note that if the server doesn't explicitly exit or close the socket,
        * the socket will be closed when the program is killed or terminates. */    
     }
@@ -622,7 +697,7 @@ void *uploadThread(void *sock_desc){
 
 }
 
-void downloadFromPeer(){
+void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filename_size){
 
         char hostname[50];
         struct sockaddr_in address;
@@ -639,7 +714,7 @@ void downloadFromPeer(){
             printf("%s\n","Invalid Server" );
             return -1;
         }
-        char* ip = inet_ntoa(*((struct in_addr *) host->h_addr_list[0]));
+        char* ip = inet_ntoa(peerIP);
 
         // Create socket
         if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -676,8 +751,7 @@ void downloadFromPeer(){
         /*send file name as request */
         int file_name_request;
         char filename[FILE_NAME_LEN];
-        sprintf(filename,"hello.txt");
-
+        memcpy(filename, file_to_download, filename_size);
         if ((file_name_request = send(sock_fd, filename, sizeof(filename), 0)) < 0){
           printf("couldn't send file name\n");
           return -1;
@@ -728,7 +802,8 @@ void downloadFromPeer(){
         printf("%s\n","Exiting download" );
         fclose(received_file);
 
-        close(sock_fd);    
+        close(sock_fd);
+        removeFromCurrentDownloads(file_to_download, filename_size);
 }
 
 
