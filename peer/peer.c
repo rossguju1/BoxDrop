@@ -367,10 +367,11 @@ void talkto_tracker(){
         peer_downloads[i]=NULL;
     }
     segtosend->type = REGISTER;
-    //printf("%s\n","SENDING REGISTER" );
+    printf("%s\n","SENDING REGISTER" );
     pthread_mutex_lock(sendtotracker_mutex); 
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
     pthread_mutex_unlock(sendtotracker_mutex);
+    memset(&segtosend, 0, sizeof(segtosend));
     free(segtosend);
 
     //Create an heartbeat thread (keepAlive)
@@ -459,16 +460,22 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
             {
                 // send file update to tracker
                 ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
+                printf("HHASD \n");
+                printf("HHASD2 %s %d \n", current_file_name, files[i].name_length);
                 segtosend->type = FILE_UPDATE;
-                memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
+                memcpy(segtosend->file_information.filename, current_file_name, files[i].name_length);
+                printf("HHASD3 \n");
                 segtosend->file_information.file_name_size = files[i].name_length;
+                printf("HHASD4 \n");
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
+                printf("HHASD5 \n");
                 pthread_mutex_lock(sendtotracker_mutex);
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                printf("HHASD6 \n");
                 pthread_mutex_unlock(sendtotracker_mutex);
                 memset(&current_file_name, 0, sizeof(current_file_name));
-                memset(&segtosend, 0, sizeof(segtosend));
+                printf("HHASD7 \n");
                 free(segtosend);
             }
         }
@@ -514,7 +521,9 @@ void* keepAlive(void* arg) {
             //printf("%s\n","SENDING KEEPALIVE" );
             pthread_mutex_lock(sendtotracker_mutex);
             send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
-            pthread_mutex_unlock(sendtotracker_mutex); 
+            pthread_mutex_unlock(sendtotracker_mutex);
+            memset(&segtosend, 0, sizeof(segtosend));
+            free(segtosend);
             sleep(interval);
         } else {
             //If sleep interval is not defined, default is 5 seconds
@@ -851,6 +860,7 @@ void file_modified( char * file_name)
     pthread_mutex_lock(sendtotracker_mutex);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
     pthread_mutex_unlock(sendtotracker_mutex);
+    memset(&segtosend, 0, sizeof(segtosend));
     free(segtosend);
 }
 
@@ -873,6 +883,7 @@ void file_created ( char * file_name)
     pthread_mutex_lock(sendtotracker_mutex);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
     pthread_mutex_unlock(sendtotracker_mutex);
+    memset(&segtosend, 0, sizeof(segtosend));
     free(segtosend);
 }
 
@@ -894,6 +905,7 @@ void file_deleted (char *file_name)
     pthread_mutex_lock(sendtotracker_mutex);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
     pthread_mutex_unlock(sendtotracker_mutex);
+    memset(&segtosend, 0, sizeof(segtosend));
     free(segtosend);
 }
 

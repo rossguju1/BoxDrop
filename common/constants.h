@@ -5,7 +5,7 @@
 
 #define PROTOCOL_LEN
 
-#define RESERVED_LEN 8
+#define RESERVED_LEN 9
 
 #define PIECE_LEN 1024
 
@@ -13,21 +13,21 @@
 
 #define IP_LEN 25
 
-#define REGISTER 0
+#define REGISTER 1
 
-#define KEEP_ALIVE 1
+#define KEEP_ALIVE 2
 
-#define FILE_UPDATE 2
+#define FILE_UPDATE 3
 
-#define PEER_CLOSE 3
+#define PEER_CLOSE 4
 
-#define ADDED 4
+#define ADDED 5
 
-#define DELETED 5
+#define DELETED 6
 
-#define MODIFIED 6
+#define MODIFIED 7
 
-#define MODIFIED_DONE 7
+#define MODIFIED_DONE 8
 
 #define TRACKER_PORT 3465
 #define PEERTOPEER_PORT 3318
