@@ -229,12 +229,38 @@ bool isInCurrentDownloads(node_t * nodes)
 {
     return false;
     //
+
 }
+
 
 bool CheckInFileTable(char * current_file_name,struct fileTable file_table)
 {
-    return true;
+   char temp[FILE_NAME_LEN];
+
+	int num;
+
+	int i;
+
+	num = file_table.numfiles;
+
+
+	for (i = 0; i < num; i++) {
+
+		memset(temp, 0, sizeof(file_table.nodes[i].filename));
+
+		memcpy(temp, file_table.nodes[i].filename, sizeof(file_table.nodes[i].filename));
+
+		if (strcmp(temp, current_file_name) == 0) {
+			return true;
+		} else {
+
+			continue;
+		}
+	}
+	return false;
 }
+
+
 void talkto_tracker(){
     
     //First register
