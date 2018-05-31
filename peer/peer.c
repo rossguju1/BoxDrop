@@ -47,7 +47,7 @@ int piece_len = -1;
 bool modifying_global = true;
 bool file_added = true;
 file_t * peer_downloads[MAX_CONCURRENT_DOWNLOADS];
-file_detail *files[MAX_FILES];
+struct file_name files[MAX_FILES];
 
 pthread_mutex_t *sendtotracker_mutex; //routing_table mutex
 
@@ -302,7 +302,11 @@ int get_number_of_files_locally()
     }
     int count = 0;
     while ((DIRentry = readdir(DIRp)) != NULL) {
-        count++;
+        //Ignore files that start witn .
+        if (DIRentry->d_name[0] != '.'){
+            count++;
+        }
+        
     }
 
     closedir(DIRp);
@@ -319,13 +323,26 @@ void get_all_files_locally()
         return NULL;
     }
     int count = 0;
+
+    //Need to free current files list first
+
+
     while ((DIRentry = readdir(DIRp)) != NULL) {
-        file_detail * temp;
-        temp = (file_detail *)malloc(sizeof(file_detail));
-        memcpy(temp->name, DIRentry->d_name, strlen(DIRentry->d_name));
-        temp->name_length = strlen(DIRentry->d_name);
-        files[count] = temp;
-        count++;
+        if (DIRentry->d_name[0] != '.'){
+            file_detail * temp;
+            temp = (file_detail *)malloc(sizeof(file_detail));
+            temp->name_length = strlen(DIRentry->d_name);
+            printf("Length is %d\n", temp->name_length);
+            temp->name[temp->name_length] = '\0';
+            memcpy(temp->name, DIRentry->d_name, strlen(DIRentry->d_name));
+            printf("Found file %s\n", temp->name);
+
+            memcpy(&(files[count].name), temp->name, temp->name_length + 1);
+            files[count].name_length = temp->name_length;
+            free(temp);
+            //files[count] = temp;
+            count++;
+        }
     }
     closedir(DIRp);
 }
@@ -345,6 +362,8 @@ void remove_locally(char * file_name, int file_size){
 }
 
 void talkto_tracker(){
+
+
     //First register
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
     for (int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
@@ -373,17 +392,18 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
         piece_len = receivedseg->piece_len;
 
         printf("Received Filetable size is %d\n",receivedseg->file_table.numfiles );
-        for (int i = 0 ; i < receivedseg->file_table.numfiles+1; i++)
+        for (int i = 0 ; i < receivedseg->file_table.numfiles; i++)
         {
             node_t * currentfile = &(receivedseg->file_table.nodes[i]);
             printf("file name : %s\n", currentfile->filename);
             printf("Number of peers is %d\n" ,currentfile->num_peers);
-            for (int j=0; j<currentfile->num_peers+1; j++ ){
-                printf ("Ip of peer %d is \n",j);
-                char newip[15];
-                inet_ntop(AF_INET, &(currentfile->IP_Peers_with_latest_file[j]),newip,sizeof(newip) );
-                printf("\n");
-                printf("%s",newip);
+            for (int j=0; j<currentfile->num_peers; j++ ){
+            printf ("Ip of peer %d is \n",j);
+            char* iip = inet_ntoa(currentfile->IP_Peers_with_latest_file[j]);
+            printf("%s\n",iip );
+
+
+
                 printf("\nAn ip should be printed by now\n");
             }
         }
@@ -428,15 +448,20 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
         int num_of_files = get_number_of_files_locally();
         for(int i = 0 ; i <num_of_files; i++)
         {
+
+
+            printf("Filetable content name is: %s\n",  files[i].name);
+            printf("Name length is %d\n",files[i].name_length );
+
             char current_file_name[FILE_NAME_LEN];
-            memcpy(current_file_name, files[i]->name, files[i]->name_length);
+            memcpy(current_file_name, files[i].name, FILE_NAME_LEN);
             if (!CheckInFileTable(current_file_name, receivedseg->file_table))
             {
                 // send file update to tracker
                 ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
                 segtosend->type = FILE_UPDATE;
-                memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
-                segtosend->file_information.file_name_size = files[i]->name_length;
+                memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
+                segtosend->file_information.file_name_size = files[i].name_length;
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
@@ -818,10 +843,10 @@ void file_modified( char * file_name)
      *
      * */
     char current_file_name[FILE_NAME_LEN];
-    memcpy(current_file_name, file_name, sizeof(current_file_name)  );
+    memcpy(current_file_name, file_name, FILE_NAME_LEN  );
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
     segtosend->type = FILE_UPDATE;
-    memcpy(segtosend->file_information.filename, current_file_name, sizeof(current_file_name));
+    memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
     segtosend->file_information.status = MODIFIED;
     segtosend->file_information.file_name_size = strlen(file_name);
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );

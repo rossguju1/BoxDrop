@@ -10,6 +10,10 @@
 #ifndef TRACKER_H
 #define TRACKER_H
 
+/**************** global functions ****************/
+//Sends the updated filetable along with other stuff to the peer at sockfd
+//void broadcast_to_peer( int peer_sockfd);
+
 /**************** global types ****************/
 typedef struct filetemp{		//PLACEHOLDER
 	char data[50];
