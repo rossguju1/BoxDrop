@@ -300,7 +300,7 @@ int get_number_of_files_locally()
     int count = 0;
     while ((DIRentry = readdir(DIRp)) != NULL) {
         //Ignore files that start witn .
-        if (DIRentry->d_name[0] != '.'){
+        if (DIRentry->d_name[0] != '.' && strlen(DIRentry->d_name)){
             count++;
         }
     }
@@ -324,7 +324,7 @@ void get_all_files_locally()
 
 
     while ((DIRentry = readdir(DIRp)) != NULL) {
-        if (DIRentry->d_name[0] != '.'){
+        if (DIRentry->d_name[0] != '.' && strlen(DIRentry->d_name)  ){
             file_detail * temp;
             temp = (file_detail *)malloc(sizeof(file_detail));
             temp->name_length = strlen(DIRentry->d_name);
