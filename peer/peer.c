@@ -647,8 +647,14 @@ void *uploadThread(void *sock_desc){
 
     //         exit(EXIT_FAILURE);
     // }
+    char root[FILE_NAME_LEN];
 
-    fp = fopen(filename, "r");
+
+    strcpy(root,DIRECTORY_NAME);
+    if(root[strlen(root)-1]!='/')
+        strcat(root,"/");
+    strcat(root, filename);
+    fp = fopen(root, "r");
     if (fp == NULL){
         printf("%s\n","Error opening file :(" );
     }
@@ -734,16 +740,7 @@ void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filenam
         FILE *received_file;
         int remain_data = 0;
 
-        printf("Enter peer name to connect:");
-        scanf("%s", hostname);
-        struct hostent* host;
-        host = gethostbyname(hostname);     //get host structure from gethostbyname
-        if (host== NULL){
-            printf("%s\n","Invalid Server" );
-            return -1;
-        }
         char* ip = inet_ntoa(peerIP);
-
         // Create socket
         if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
         {
@@ -780,6 +777,7 @@ void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filenam
         int file_name_request;
         char filename[FILE_NAME_LEN];
         memcpy(filename, file_to_download, filename_size);
+        filename[filename_size] = '\0';
         if ((file_name_request = send(sock_fd, filename, sizeof(filename), 0)) < 0){
           printf("couldn't send file name\n");
           return -1;
@@ -795,12 +793,11 @@ void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filenam
         }
         fprintf(stdout, "\nFile size : %d\n", file_size_received);
 
-        char newfilename[FILE_NAME_LEN + 3];
-        newfilename[0] = 'n';
-        newfilename[1] = 'e';
-        newfilename[2] = 'w';
-        strcat(newfilename, filename );
-
+        char newfilename[FILE_NAME_LEN];
+        strcpy(newfilename,DIRECTORY_NAME);
+        if(newfilename[strlen(newfilename)-1]!='/')
+            strcat(newfilename,"/");
+        strcat(newfilename, filename);
         received_file = fopen(newfilename, "w");
         if (received_file == NULL)
         {
