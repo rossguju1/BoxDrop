@@ -212,8 +212,6 @@ bool inDirectory(char * file_name ,int name_size)
 
 
 	while ((DIRentry = readdir(DIRp)) != NULL) {
-		int size = get_file_size(DIRentry->d_name);
-
 		if (strncmp(DIRentry->d_name, file_name, name_size) == 0) {
 			return true;
 		} else {
@@ -222,11 +220,10 @@ bool inDirectory(char * file_name ,int name_size)
 	}
 
 	closedir(DIRp);
-
 	return false;
 }
 
-void removeFromCurrentDownloads(char * file_name, char * file_name_size)
+void removeFromCurrentDownloads(char * file_name, int file_name_size)
 {
     for(int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
     {
@@ -306,7 +303,6 @@ int get_number_of_files_locally()
         if (DIRentry->d_name[0] != '.'){
             count++;
         }
-        
     }
 
     closedir(DIRp);
@@ -398,12 +394,9 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
             printf("file name : %s\n", currentfile->filename);
             printf("Number of peers is %d\n" ,currentfile->num_peers);
             for (int j=0; j<currentfile->num_peers; j++ ){
-            printf ("Ip of peer %d is \n",j);
-            char* iip = inet_ntoa(currentfile->IP_Peers_with_latest_file[j]);
-            printf("%s\n",iip );
-
-
-
+                printf ("Ip of peer %d is \n",j);
+                char* iip = inet_ntoa(currentfile->IP_Peers_with_latest_file[j]);
+                printf("%s\n",iip );
                 printf("\nAn ip should be printed by now\n");
             }
         }
@@ -411,17 +404,22 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
 
         // 2 cases
         //case 1
-        // global table has more files than peer
+        // global table has more files than peer mki0
+        printf("outside \n");
         for (int i = 0 ; i< receivedseg->file_table.numfiles; i++)
         {
+            printf("inside more global files1 \n");
             if (inDirectory(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size) == false)
             {
+                printf("inside more global files2 \n");
                 if (!isInCurrentDownloads(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size))
                 {
+                    printf("inside more global files3 \n");
                     for (int j = 0 ; j < MAX_CONCURRENT_DOWNLOADS ; j++)
                     {
                         if(peer_downloads[i] != NULL)
                         {
+                            printf("inside more global files4 \n");
                             file_t * temp;
                             temp = (file_t *)malloc(sizeof(file_t));
                             memcpy(temp->file_name, receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
@@ -430,6 +428,8 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                             break;
                         }
                     }
+                    printf("inside more global files downloading  \n");
+
                     //TODO: DOWNLOAD FILE NOW AND REMOVE FROM PEER DOWNLOADS AFTER DONE
                     downloadFromPeer(receivedseg->file_table.nodes[i].IP_Peers_with_latest_file[0], receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
                 }
