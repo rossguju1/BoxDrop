@@ -182,9 +182,9 @@ int main(const int argc, char *argv[])
     tracker_connection = sock_fd;
     printf("%s\n","Peer connected to Tracker" );
 
-    if (argc > 1){
-        //downloadFromPeer();
-    }
+    // if (argc > 1){
+    //     //downloadFromPeer();
+    // }
 
     pthread_t monitor_thread;
     // file dummies;
@@ -196,6 +196,9 @@ int main(const int argc, char *argv[])
     talkto_tracker();
 
     while(1){
+        if (tracker_connection < 0){
+            break;
+        }
         sleep(10);
     }
 
@@ -395,7 +398,7 @@ void talkto_tracker(){
     ptp_tracker_t* receivedseg = malloc(sizeof(ptp_tracker_t) );
 
     //Keep receiving data from tracker
-    while( (read( tracker_connection , receivedseg, sizeof(ptp_tracker_t))) > 0 ){
+    while( (recv( tracker_connection , receivedseg, sizeof(ptp_tracker_t),0)) > 0 ){
         printf("%s\n","Message received from tracker" );
         // printf("Received interval is %d\n",receivedseg->interval );
         interval = receivedseg->interval;

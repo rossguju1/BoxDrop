@@ -166,11 +166,13 @@ void* handshake(void* arg) {
 	free(arg);
 
 	printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
-	ptp_peer_t* receivedseg = malloc(sizeof(ptp_peer_t) );
+	ptp_peer_t* receivedseg = (ptp_peer_t*) malloc(sizeof(ptp_peer_t) );
+
+	// struct ptp_peer_t receivedseg;
 	
 
 	//Recieve data from Peer
-	while( (read( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
+	while( (recv( sockfd , receivedseg, sizeof(ptp_peer_t),0)) > 0 ){
 		//Keep reading until error occours
 		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
 			printf("RECEIVED REGISTER\n");
