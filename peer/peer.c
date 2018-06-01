@@ -39,6 +39,7 @@ void talkto_tracker();
 void *uploadThread(void *sock_desc);
 void* listen_to_peer();
 FILE *fp_log;
+char DIRECTORY_NAME[20];
 
 /**************** global variables ****************/
 int tracker_connection = -1;         //connection to the tracker
@@ -48,11 +49,13 @@ bool modifying_global = true;
 bool file_added = true;
 file_t * peer_downloads[MAX_CONCURRENT_DOWNLOADS];
 struct file_name files[MAX_FILES];
+int peerID;
 
 pthread_mutex_t *sendtotracker_mutex; //routing_table mutex
 
 void add_watches(int fd, char *root)
 {
+
     int wd;
     char *abs_dir;
     struct dirent *entry;
@@ -112,6 +115,11 @@ void add_watches(int fd, char *root)
 
 int main(const int argc, char *argv[])
 {
+    if (argc > 1){
+        sprintf(DIRECTORY_NAME, "DROPBOX2");
+    } else{
+         sprintf(DIRECTORY_NAME, "DROPBOX");
+    }
 	int sock_fd;
 	struct sockaddr_in address;
 
@@ -123,8 +131,9 @@ int main(const int argc, char *argv[])
 
     // // choose a node to connect
     char hostname[50];
-    printf("Enter server name to connect:");
-    scanf("%s", hostname);
+    sprintf(hostname, "flume.cs.dartmouth.edu");
+    // printf("Enter server name to connect:");
+    // scanf("%s", hostname);
     struct hostent* host;
     host = gethostbyname(hostname);     //get host structure from gethostbyname
     if (host== NULL){
@@ -198,6 +207,7 @@ int main(const int argc, char *argv[])
 
 bool inDirectory(char * file_name ,int name_size)
 {
+    printf("checking in directory %s\n", DIRECTORY_NAME);
 	struct dirent *DIRentry;
 
 	DIR *DIRp = opendir(DIRECTORY_NAME);
@@ -311,8 +321,10 @@ int get_number_of_files_locally()
 
 void get_all_files_locally()
 {
+    printf("trying to get local files\n");
     struct dirent *DIRentry;
     DIR *DIRp = opendir(DIRECTORY_NAME);
+    printf("get_all_files_locally: getting al local files from %s\n", DIRECTORY_NAME );
     if (DIRp == NULL)
     {
         printf("Could not open dropbox root directory\n" );
@@ -324,6 +336,7 @@ void get_all_files_locally()
 
 
     while ((DIRentry = readdir(DIRp)) != NULL) {
+        printf("found dir entry with name %s\n", DIRentry->d_name);
         if (DIRentry->d_name[0] != '.' && strlen(DIRentry->d_name)  ){
             file_detail * temp;
             temp = (file_detail *)malloc(sizeof(file_detail));
@@ -340,6 +353,7 @@ void get_all_files_locally()
             count++;
         }
     }
+    printf("found %d local files \n", count );
     closedir(DIRp);
 }
 
@@ -358,8 +372,6 @@ void remove_locally(char * file_name, int file_size){
 }
 
 void talkto_tracker(){
-
-
     //First register
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
     for (int i = 0 ; i < MAX_CONCURRENT_DOWNLOADS; i++)
@@ -369,35 +381,37 @@ void talkto_tracker(){
     segtosend->type = REGISTER;
     //printf("%s\n","SENDING REGISTER" );
     pthread_mutex_lock(sendtotracker_mutex); 
+    //TODO: check send
     send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
     pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 
+
     //Create an heartbeat thread (keepAlive)
     pthread_t heartbeat_thread;
     pthread_create(&heartbeat_thread, NULL, keepAlive, (void *) &tracker_connection);
-printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
-    printf("Size is ptp tracker is %ld\n", sizeof(ptp_tracker_t));
+    // printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
+    // printf("Size is ptp tracker is %ld\n", sizeof(ptp_tracker_t));
     ptp_tracker_t* receivedseg = malloc(sizeof(ptp_tracker_t) );
 
     //Keep receiving data from tracker
     while( (read( tracker_connection , receivedseg, sizeof(ptp_tracker_t))) > 0 ){
         printf("%s\n","Message received from tracker" );
-        printf("Received interval is %d\n",receivedseg->interval );
+        // printf("Received interval is %d\n",receivedseg->interval );
         interval = receivedseg->interval;
         piece_len = receivedseg->piece_len;
 
-        printf("Received Filetable size is %d\n",receivedseg->file_table.numfiles );
+        printf("TalktoTracker: Received Filetable from tracker size is %d\n",receivedseg->file_table.numfiles );
         for (int i = 0 ; i < receivedseg->file_table.numfiles; i++)
         {
             node_t * currentfile = &(receivedseg->file_table.nodes[i]);
             printf("file name : %s\n", currentfile->filename);
-            printf("Number of peers is %d\n" ,currentfile->num_peers);
+            printf("Number of peers who have the file is %d\n and they are \n" ,currentfile->num_peers);
             for (int j=0; j<currentfile->num_peers; j++ ){
                 printf ("Ip of peer %d is \n",j);
                 char* iip = inet_ntoa(currentfile->IP_Peers_with_latest_file[j]);
                 printf("%s\n",iip );
-                printf("\nAn ip should be printed by now\n");
+                // printf("\nAn ip should be printed by now\n");
             }
         }
 
@@ -405,21 +419,39 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
         // 2 cases
         //case 1
         // global table has more files than peer mki0
-        printf("outside \n");
+        // printf("outside \n");
         for (int i = 0 ; i< receivedseg->file_table.numfiles; i++)
         {
-            printf("inside more global files1 \n");
-            if (inDirectory(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size) == false)
+            if (receivedseg->file_table.nodes[i].status == DELETED)
+                {
+                    remove_locally(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
+                }
+
+
+            // printf("inside more global files1 \n");
+            if (receivedseg->file_table.nodes[i].status == DELETED){
+                printf("Got a deleted file %s\n",receivedseg->file_table.nodes[i].filename);
+
+                if (inDirectory(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size)){
+                    printf("talkto_tracker: trying to Remove file: %s \n", receivedseg->file_table.nodes[i].filename);
+                    // remove(receivedseg->file_table.nodes[i].filename);
+                    
+                    remove_locally(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
+                }
+                continue;
+            }
+            if (! inDirectory(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size))
             {
-                printf("inside more global files2 \n");
+                // printf("inside more global files2 \n");
                 if (!isInCurrentDownloads(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size))
                 {
-                    printf("inside more global files3 \n");
+                    // printf("inside more global files3 \n");
                     for (int j = 0 ; j < MAX_CONCURRENT_DOWNLOADS ; j++)
                     {
                         if(peer_downloads[i] != NULL)
                         {
-                            printf("inside more global files4 \n");
+                            printf("Adding %s to download list\n", receivedseg->file_table.nodes[i].filename );
+                            // printf("inside more global files4 \n");
                             file_t * temp;
                             temp = (file_t *)malloc(sizeof(file_t));
                             memcpy(temp->file_name, receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
@@ -428,24 +460,22 @@ printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
                             break;
                         }
                     }
-                    printf("inside more global files downloading  \n");
+                    // printf("inside more global files downloading  \n");
 
                     //TODO: DOWNLOAD FILE NOW AND REMOVE FROM PEER DOWNLOADS AFTER DONE
                     downloadFromPeer(receivedseg->file_table.nodes[i].IP_Peers_with_latest_file[0], receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
                 }
 
             }
-            else{
-                if (receivedseg->file_table.nodes[i].status == DELETED)
-                {
-                    remove_locally(receivedseg->file_table.nodes[i].filename, receivedseg->file_table.nodes[i].file_name_size);
-                }
-            }
+            // else{
+                
+            // }
         }
 
         //case 2 = extra fies
         get_all_files_locally();
         int num_of_files = get_number_of_files_locally();
+        printf("%d local files found \n",  num_of_files);
         for(int i = 0 ; i <num_of_files; i++)
         {
 
@@ -528,7 +558,9 @@ void* keepAlive(void* arg) {
 
 void peer_stop(){
     if (tracker_connection >=0){
+        pthread_mutex_lock(sendtotracker_mutex); 
         close(tracker_connection);
+        pthread_mutex_unlock(sendtotracker_mutex); 
         tracker_connection = -1;
     }
     pthread_mutex_destroy(sendtotracker_mutex);
@@ -595,7 +627,7 @@ void* listen_to_peer(){
                 return EXIT_FAILURE;
             }
 
-            printf("Client %s is connected \n", client_address);
+            printf("Peer %s is connected \n", client_address);
             if( pthread_create( &thread_id , NULL ,  uploadThread , (void*) &peer_sock) < 0)
             {
                 perror("could not create thread");
@@ -659,6 +691,9 @@ void *uploadThread(void *sock_desc){
     fp = fopen(root, "r");
     if (fp == NULL){
         printf("%s\n","Error opening file :(" );
+        close(peer_sock);
+
+        return 0;
     }
 
     fseek(fp,0,SEEK_END);
@@ -912,8 +947,8 @@ void *monitor(void *arg) {
         int fd;
         char buffer[BUF_LEN], root[MAX_LEN];
 
-
         strcpy(root,DIRECTORY_NAME);
+        
         if(root[strlen(root)-1]!='/')
             strcat(root,"/");
         puts(root);
@@ -933,6 +968,7 @@ void *monitor(void *arg) {
 
         /* Read the sub-directories at one level under argv[1]
          * and monitor them for access */
+
         add_watches(fd,root);
 
         /* do it forever*/

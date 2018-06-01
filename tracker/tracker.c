@@ -35,8 +35,8 @@
 /****** local functions *********/
 
 void tracker_stop();
-
-
+void broadcast_to_peer(int peer_sockfd);
+void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd);
 /****** local constants *********/
 
 
@@ -75,7 +75,9 @@ void *monitor_peers();
 // void tracker_send(tracker_table_t *table, );
 
 int connect_to_peer();
+int new_peer(int sockfd, struct in_addr peerIP);
 
+bool isPeerAlreadyConnected(struct in_addr peerIP);
 
 
 
@@ -90,7 +92,7 @@ int main()
 	struct sockaddr_in TrackerAddress;
 	int addrlen = sizeof(TrackerAddress);
 
-	printf("%s\n", "Starting up tracker main thread");
+	printf("%s\n", "Main: Starting up tracker main thread");
 
 	tracker_init();
 	//Create tracker table
@@ -99,7 +101,7 @@ int main()
 	//Open socket in TRACKER_PORT
 	listening_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (listening_socket_fd < 0) {
-		perror("opening socket failed");
+		perror("Main: opening socket failed");
 		exit(-1);
 	}
 
@@ -108,18 +110,18 @@ int main()
 	TrackerAddress.sin_port = htons(TRACKER_PORT);
 	// binding
 	if (bind(listening_socket_fd, (struct sockaddr *) &TrackerAddress, sizeof(TrackerAddress)) < 0) {
-		perror("Error when Binding");
+		perror("Main: Error when Binding");
 		exit(-1);
 	}
 
 	//Listen on the handshake port
 	if (listen(listening_socket_fd, MAX_PEER_SLOTS) < 0) {
-		perror("Error when listening");
+		perror("Main: Error when listening");
 		exit(-1);
 	}
 
-	printf("Listening on Port %d\n", TRACKER_PORT);
-	printf("Waiting for connections......\n");
+	printf("Main: Listening on Port %d\n", TRACKER_PORT);
+	printf("Main: Waiting for connections......\n");
 
 	//Create a handshake thread
 	pthread_t monitor_thread;
@@ -134,7 +136,6 @@ int main()
 			break;
 		}
 
-
 		printf("New Peer connecteed\n");
 
 		//Data to send to handshake thread
@@ -145,21 +146,75 @@ int main()
 		//Create a handshake thread
 		pthread_t handshake_thread;
 		pthread_create(&handshake_thread, NULL, handshake, (void *) toHandshakeThread);
-
-
-
-
+		printf("Main: HandShake thread created\n");
 	}
 	
 
 
+}
 
 
+//Handshake thread, individual for each peer
+void* handshake(void* arg) {
+	int tableindex = -1; //The index of the current peer in tracker_side_peer_table[]
+
+	//Parse input and free input memory
+	handshake_seg_t* toHandshakeThread = (handshake_seg_t*) arg;
+	int sockfd = toHandshakeThread->sockfd;
+	struct in_addr peerIP = toHandshakeThread->sin_addr;
+	// printf("Handshake Thread for peer with IP %ul \n", peerIP.s_addr );
+	free(arg);
+
+	printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
+	ptp_peer_t* receivedseg = malloc(sizeof(ptp_peer_t) );
+	
+
+	//Recieve data from Peer
+	while( (read( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
+		//Keep reading until error occours
+		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
+			printf("RECEIVED REGISTER\n");
+			if (!isPeerAlreadyConnected(peerIP)){
+				tableindex = new_peer(sockfd, peerIP); 
+				if (tableindex >= 0){
+				 	//Acknowledge registration from peer
+				 	broadcast_to_peer(sockfd);
+				} else {
+					//Either error or maximum peers connected
+					printf("Either error or maximum peers connected!!!!\n");
+				} 
+			}
+			
+
+		} else if (receivedseg->type == KEEP_ALIVE){
+			// printf("%s\n","RECEIVED KEEPALIVE" );
+			if (tracker_side_peer_table[tableindex] != NULL){
+				tracker_side_peer_table[tableindex]->last_time_stamp = time(NULL);
+				broadcast_to_peer(sockfd);
+			}
 
 
+		} else if (receivedseg->type == FILE_UPDATE){
+			printf("Peer sent file update\n");
+            handleFileUpdate(receivedseg, peerIP, sockfd);
+		} else if (receivedseg->type == PEER_CLOSE){
+			printf("Peer sent close\n");
+			disconnectpeer(tableindex);
+		}
+		 else {
+			printf("Unknown type of segment received for sockfd %d\n",sockfd );
+		}
 
+	}
+	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
+	free(receivedseg);
+	disconnectpeer(tableindex);
+	return NULL;
 
 }
+
+
+
 
 
 
@@ -173,6 +228,22 @@ void tracker_init(){
     filetable_mutex = malloc( sizeof(pthread_mutex_t) );
     pthread_mutex_init(filetable_mutex,NULL);
 
+
+}
+
+
+bool isPeerAlreadyConnected(struct in_addr peerIP){
+	for (int i = 0; i < MAX_PEER_SLOTS; i++) {
+		if (tracker_side_peer_table[i] != NULL){
+			char* ip = inet_ntoa(peerIP);
+			if (strcmp(ip,tracker_side_peer_table[i]->ip) == 0){
+				printf("already connected\n");
+				return true;
+			}
+		}
+	}
+	return false;
+			
 
 }
 
@@ -208,63 +279,6 @@ int new_peer(int sockfd, struct in_addr peerIP){
   return -1;
 }
 
-//Handshake thread, individual for each peer
-void* handshake(void* arg) {
-	int tableindex = -1; //The index of the current peer in tracker_side_peer_table[]
-
-	//Parse input and free input memory
-	handshake_seg_t* toHandshakeThread = (handshake_seg_t*) arg;
-	int sockfd = toHandshakeThread->sockfd;
-	struct in_addr peerIP = toHandshakeThread->sin_addr;
-	free(arg);
-
-	printf("Size of ptp peer is %ld\n", sizeof(ptp_peer_t));
-	ptp_peer_t* receivedseg = malloc(sizeof(ptp_peer_t) );
-	
-
-	//Recieve data from Peer
-	while( (read( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
-		//Keep reading until error occours
-		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
-			printf("RECEIVED REGISTER\n");
-			tableindex = new_peer(sockfd, peerIP);
-			if (tableindex >= 0){
-			 	//Acknowledge registration from peer
-			 	broadcast_to_peer(sockfd);
-
-			} else {
-				//Either error or maximum peers connected
-				printf("Either error or maximum peers connected!!!!\n");
-			} 
-
-		} else if (receivedseg->type == KEEP_ALIVE){
-			printf("%s\n","RECEIVED KEEPALIVE" );
-			if (tracker_side_peer_table[tableindex] != NULL){
-				tracker_side_peer_table[tableindex]->last_time_stamp = time(NULL);
-				broadcast_to_peer(sockfd);
-			}
-
-
-		} else if (receivedseg->type == FILE_UPDATE){
-			printf("Peer sent file update\n");
-            handleFileUpdate(receivedseg, peerIP, sockfd);
-		} else if (receivedseg->type == PEER_CLOSE){
-			printf("Peer sent close\n");
-			disconnectpeer(tableindex);
-		}
-		 else {
-			printf("Unknown type of segment received for sockfd %d\n",sockfd );
-		}
-
-	}
-	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
-	free(receivedseg);
-	disconnectpeer(tableindex);
-	return NULL;
-
- 
-
-}
 
 //Sends the updated filetable along with other stuff to all peers
 //Except the peer with given sockfd
@@ -305,11 +319,24 @@ void *monitor_peers()
 			   int difference = (int) (currenttime - tracker_side_peer_table[i]->last_time_stamp);
 			   if (difference > HEARTBEAT_TIMEOUT){
 			   	//Disconnect the client
+			   	printf("MOnitor peers: heartbeat timed out\n");
 			   	disconnectpeer(i);
 			   }
 
 		}
-		printf("Current number of peers connected is %d\n",count );
+		printf("monitor_peers: Current number of peers connected is %d\n",count );
+
+		if (count ==0){
+			if (global_filetable->numfiles != 0){
+				//clear filetable
+				printf("Monitor Peers: clearing filetable on tracker\n");
+				 pthread_mutex_lock(filetable_mutex);
+				global_filetable->numfiles = 0;
+				pthread_mutex_unlock(filetable_mutex);
+			}
+			
+			
+		}
 		sleep(MONITOR_INTERVAL);
 	}
 
@@ -330,6 +357,13 @@ void disconnectpeer(int index){
 	tracker_side_peer_table[index] = NULL;
 	printf("Peer at index %d disconnected\n", index );
 
+
+
+
+
+
+
+
 }
 
 void printfileTable()
@@ -337,14 +371,14 @@ void printfileTable()
 	printf("Number of files in Filetable is %d\n", global_filetable->numfiles);
 	for (int i = 0 ; i<global_filetable->numfiles;i++)
 	{
-		printf("%s \n", global_filetable->nodes[i].filename);
-		printf("%d \n", global_filetable->nodes[i].file_name_size);
+		printf("%s  %d\n", global_filetable->nodes[i].filename, global_filetable->nodes[i].status);
+		// printf("%d \n", global_filetable->nodes[i].file_name_size);
 	}
 }
 void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
     // 1.     updateFileTableAfterUpdate(recv_seg);
 
-
+	printf("Got this file as update %s with status %d\n", recv_seg->file_information.filename,recv_seg->file_information.status );
     if (recv_seg->file_information.status == DELETED)
 	{
 		//updateFileTable(recv_seg->file_information);g]
@@ -362,7 +396,9 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
 	}
 	else if (recv_seg->file_information.status == MODIFIED)
 	{
+		pthread_mutex_lock(filetable_mutex);
 		for (int i = 0 ; i < global_filetable->numfiles; i++) {
+
 			if (strncmp(global_filetable->nodes[i].filename, recv_seg->file_information.filename,
 						recv_seg->file_information.file_name_size) == 0) {
 				pthread_mutex_lock(filetable_mutex);
@@ -373,11 +409,14 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
 				pthread_mutex_unlock(filetable_mutex);
 			}
 		}
+		pthread_mutex_unlock(filetable_mutex);
 
 	}
 
 	else if (recv_seg->file_information.status == MODIFIED_DONE)
 	{
+		pthread_mutex_lock(filetable_mutex);
+
 		for (int i = 0 ; i < global_filetable->numfiles; i++) {
 			if (strncmp(global_filetable->nodes[i].filename, recv_seg->file_information.filename,
 						recv_seg->file_information.file_name_size) == 0) {
@@ -388,6 +427,8 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
 				pthread_mutex_unlock(filetable_mutex);
 			}
 		}
+		pthread_mutex_unlock(filetable_mutex);
+
 
 	}
     else{
@@ -395,17 +436,41 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
         if (global_filetable->numfiles <= MAX_FILES)
         {
             pthread_mutex_lock(filetable_mutex);
-            global_filetable->nodes[global_filetable->numfiles].status = ADDED;
-            global_filetable->nodes[global_filetable->numfiles].latest_timestamp = recv_seg->file_information.latest_timestamp;
-            memcpy(global_filetable->nodes[global_filetable->numfiles].filename, recv_seg->file_information.filename,
-                   sizeof(recv_seg->file_information.filename));
-			global_filetable->nodes[global_filetable->numfiles].file_name_size = recv_seg->file_information.file_name_size;
+            //check if file exists
+            bool found = false;
+            for (int i = 0 ; i < global_filetable->numfiles; i++) {
+				if (strncmp(global_filetable->nodes[i].filename, recv_seg->file_information.filename,
+						recv_seg->file_information.file_name_size) == 0) {
+					found = true;
 
-            //enter ip in list of ips
-            struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[0]);
-            memcpy(desttocopy, &ip, sizeof(struct in_addr) );
-            global_filetable->nodes[global_filetable->numfiles].num_peers++;
-            global_filetable->numfiles++;
+
+					break;
+				}
+			}
+			if (!found){ //first time
+				global_filetable->nodes[global_filetable->numfiles].status = ADDED;
+	            global_filetable->nodes[global_filetable->numfiles].latest_timestamp = recv_seg->file_information.latest_timestamp;
+	            memcpy(global_filetable->nodes[global_filetable->numfiles].filename, recv_seg->file_information.filename,
+	                   sizeof(recv_seg->file_information.filename));
+				global_filetable->nodes[global_filetable->numfiles].file_name_size = recv_seg->file_information.file_name_size;
+
+	            //enter ip in list of ips
+	            struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[0]);
+	            memcpy(desttocopy, &ip, sizeof(struct in_addr) );
+	            global_filetable->nodes[global_filetable->numfiles].num_peers = 1;
+	            global_filetable->numfiles++;
+
+			} else {
+				
+				struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[global_filetable->nodes[global_filetable->numfiles].num_peers]);
+	            memcpy(desttocopy, &ip, sizeof(struct in_addr) );
+	            global_filetable->nodes[global_filetable->numfiles].num_peers++;
+			}
+
+
+
+
+           
             pthread_mutex_unlock(filetable_mutex);
         }
     }
@@ -416,9 +481,12 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
 
 
 void tracker_stop(){
+
     if (listening_socket_fd >=0){
         close(listening_socket_fd);
     }
     pthread_mutex_destroy(filetable_mutex);
     printf("Exiting Tracker\n");
 }
+
+
