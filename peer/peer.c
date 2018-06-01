@@ -39,7 +39,6 @@ void talkto_tracker();
 void *uploadThread(void *sock_desc);
 void* listen_to_peer();
 FILE *fp_log;
-char DIRECTORY_NAME[20];
 
 /**************** global variables ****************/
 int tracker_connection = -1;         //connection to the tracker
