@@ -541,7 +541,7 @@ void* keepAlive(void* arg) {
         segtosend->type = KEEP_ALIVE;
         //segtosend.peer_ip = 
         if (interval > 0){
-            //printf("%s\n","SENDING KEEPALIVE" );
+            printf("%s\n","SENDING KEEPALIVE" );
             pthread_mutex_lock(sendtotracker_mutex);
             send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
             pthread_mutex_unlock(sendtotracker_mutex); 
@@ -751,10 +751,11 @@ void *uploadThread(void *sock_desc){
     // }
 
     //Sending of actual data, byte by byte
+    printf("Upload thread: Sending bytes to peer\n");
     for (int i = 0; i < fileLen; i++){
         char c = getc(fp);
         send(peer_sock, &c, 1,0);
-        printf("Sent byte %d of %d, which is %c \n",i + 1, fileLen, c );
+        // printf("Sent byte %d of %d, which is %c \n",i + 1, fileLen, c );
     }
 
     //send(peer_sock, fp, fileLen,0);
@@ -1046,17 +1047,22 @@ void *monitor(void *arg) {
                     }
 
                     if ( event->mask & IN_MODIFY) {
-                        if (event->mask & IN_ISDIR)
-                        {
+                        if (event->mask & IN_ISDIR){
 
+                        } else {
+                            printf("in modify file\n");
                         }
-                            printf("DIR::%s MODIFIED\n",event->name );
+                        printf("DIR::%s MODIFIED\n",event->name );
+
 
 
                     }
                     if ( event->mask & IN_CLOSE_WRITE) {
+                        printf("in close write\n");
+
                         if (!file_added)
                         {
+                            printf("registered\n");
                             if(modifying_global){
                                 if (event->name[0] != ':' && event->name[0] != '.')
                                 {
@@ -1068,6 +1074,7 @@ void *monitor(void *arg) {
                                     {
                                         pthread_t modifying_thread;
                                         pthread_create(&modifying_thread, NULL, modify, (void *) (char*)event->name);
+                                    
                                     }
 
                                 }
@@ -1077,6 +1084,7 @@ void *monitor(void *arg) {
                         }
                         else
                         {
+                            printf("file added is false\n");
                             file_added = false;
                         }
 

@@ -45,19 +45,19 @@ typedef struct fileTable{
 /* The packet data structure sending from peer to tracker */
 typedef struct segment_peer {
 	// protocol length
-	int protocol_len;
+	//int protocol_len;
 	// protocol name
-	char protocol_name[PROTOCOL_LEN + 1];
+	// char protocol_name[PROTOCOL_LEN + 1];
 	// packet type : register, keep alive, update file table
 	int type;
 	// reserved space, you could use this space for your convenient, 8 bytes by default
-	char reserved[RESERVED_LEN];
+	//char reserved[RESERVED_LEN];
 	// the peer ip address sending this packet
-	char peer_ip[IP_LEN];
+	//char peer_ip[IP_LEN];
 	// listening port number in p2p
-	int port;
+	//int port;
 	// file table of the client -- your own design
-	struct fileTable file_table;
+	//struct fileTable file_table;
     // file info
     struct node file_information;
 }ptp_peer_t;

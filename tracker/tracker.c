@@ -443,11 +443,19 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
 						recv_seg->file_information.file_name_size) == 0) {
 					found = true;
 
+					if (global_filetable->nodes[i].status == DELETED){
+						global_filetable->nodes[i].status = ADDED;
+					}
+					struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[global_filetable->nodes[global_filetable->numfiles].num_peers]);
+	            	memcpy(desttocopy, &ip, sizeof(struct in_addr) );
+	            	global_filetable->nodes[global_filetable->numfiles].num_peers++;
+
 
 					break;
 				}
 			}
 			if (!found){ //first time
+				printf("first time adding\n");
 				global_filetable->nodes[global_filetable->numfiles].status = ADDED;
 	            global_filetable->nodes[global_filetable->numfiles].latest_timestamp = recv_seg->file_information.latest_timestamp;
 	            memcpy(global_filetable->nodes[global_filetable->numfiles].filename, recv_seg->file_information.filename,
@@ -460,11 +468,6 @@ void handleFileUpdate(ptp_peer_t *  recv_seg, struct in_addr ip, int sockfd){
 	            global_filetable->nodes[global_filetable->numfiles].num_peers = 1;
 	            global_filetable->numfiles++;
 
-			} else {
-				
-				struct in_addr* desttocopy = &(global_filetable->nodes[global_filetable->numfiles].IP_Peers_with_latest_file[global_filetable->nodes[global_filetable->numfiles].num_peers]);
-	            memcpy(desttocopy, &ip, sizeof(struct in_addr) );
-	            global_filetable->nodes[global_filetable->numfiles].num_peers++;
 			}
 
 
