@@ -897,11 +897,14 @@ void file_modified( char * file_name)
      *
      *
      * */
+
+    printf("file modified %s ", file_name);
     char current_file_name[FILE_NAME_LEN];
     memcpy(current_file_name, file_name, FILE_NAME_LEN  );
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
     segtosend->type = FILE_UPDATE;
     memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
+    printf("file modified in segment %s ", segtosend->file_information.filename);
     segtosend->file_information.status = MODIFIED;
     segtosend->file_information.file_name_size = strlen(file_name);
     pthread_mutex_lock(sendtotracker_mutex);
@@ -911,6 +914,7 @@ void file_modified( char * file_name)
                     bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
                 }
     pthread_mutex_unlock(sendtotracker_mutex);
+    memset(&current_file_name, 0, sizeof(current_file_name));
     free(segtosend);
 }
 
