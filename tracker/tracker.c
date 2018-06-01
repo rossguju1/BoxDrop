@@ -170,7 +170,7 @@ void* handshake(void* arg) {
 	
 
 	//Recieve data from Peer
-	while( (recv( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
+	while( (recv( sockfd , receivedseg, sizeof(ptp_peer_t),0)) > 0 ){
 		//Keep reading until error occours
 		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
 			printf("RECEIVED REGISTER\n");
