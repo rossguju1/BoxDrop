@@ -480,9 +480,11 @@ void talkto_tracker(){
 
             char current_file_name[FILE_NAME_LEN];
             memcpy(current_file_name, files[i].name, FILE_NAME_LEN);
+            printf("about to send  %s\n", current_file_name);
             if (!CheckInFileTable(current_file_name, receivedseg->file_table))
             {
                 // send file update to tracker
+                printf("sending to tracker file update \n");
                 ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
                 segtosend->type = FILE_UPDATE;
                 memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
