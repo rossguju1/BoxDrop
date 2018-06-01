@@ -494,10 +494,11 @@ void talkto_tracker(){
                 pthread_mutex_lock(sendtotracker_mutex);
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
                 pthread_mutex_unlock(sendtotracker_mutex);
-                memset(&current_file_name, 0, sizeof(current_file_name));
-                memset(&segtosend, 0, sizeof(segtosend));
-                free(segtosend);
+
             }
+            memset(&current_file_name, 0, sizeof(current_file_name));
+            memset(&segtosend, 0, sizeof(segtosend));
+            free(segtosend);
         }
 //        struct dirent *DIRentry;  // Pointer for directory entry
 //// 	// chdir("/Users/rossguju/Desktop/anon/CS60SP18/CS60-TeamDDOS-DropBox/common");
