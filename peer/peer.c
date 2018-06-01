@@ -385,7 +385,11 @@ void talkto_tracker(){
     //printf("%s\n","SENDING REGISTER" );
     pthread_mutex_lock(sendtotracker_mutex); 
     //TODO: check send
-    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                    int bs;
+                bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                while (bs != sizeof(ptp_peer_t)){
+                    bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                }
     pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 
@@ -398,7 +402,11 @@ void talkto_tracker(){
     ptp_tracker_t* receivedseg = malloc(sizeof(ptp_tracker_t) );
 
     //Keep receiving data from tracker
-    while( (recv( tracker_connection , receivedseg, sizeof(ptp_tracker_t),0)) > 0 ){
+    int bytesreceived;
+    while( (bytesreceived = recv( tracker_connection , receivedseg, sizeof(ptp_tracker_t),0)) > 0 ){
+        while (bytesreceived != sizeof(ptp_tracker_t)){
+           bytesreceived = recv( tracker_connection , receivedseg, sizeof(ptp_tracker_t),0);
+        }
         printf("%s\n","Message received from tracker" );
         // printf("Received interval is %d\n",receivedseg->interval );
         interval = receivedseg->interval;
@@ -498,7 +506,11 @@ void talkto_tracker(){
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
                 pthread_mutex_lock(sendtotracker_mutex);
-                send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                int bs;
+                bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                while (bs != sizeof(ptp_peer_t)){
+                    bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                }
                 pthread_mutex_unlock(sendtotracker_mutex);
                 memset(&current_file_name, 0, sizeof(current_file_name));
                 memset(&segtosend, 0, sizeof(segtosend));
@@ -546,7 +558,12 @@ void* keepAlive(void* arg) {
         if (interval > 0){
             printf("%s\n","SENDING KEEPALIVE" );
             pthread_mutex_lock(sendtotracker_mutex);
-            send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+            
+                            int bs;
+                bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                while (bs != sizeof(ptp_peer_t)){
+                    bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                }
             pthread_mutex_unlock(sendtotracker_mutex); 
             sleep(interval);
         } else {
@@ -888,7 +905,11 @@ void file_modified( char * file_name)
     segtosend->file_information.status = MODIFIED;
     segtosend->file_information.file_name_size = strlen(file_name);
     pthread_mutex_lock(sendtotracker_mutex);
-    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                    int bs;
+                bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                while (bs != sizeof(ptp_peer_t)){
+                    bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                }
     pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 }
@@ -910,7 +931,11 @@ void file_created ( char * file_name)
     segtosend->file_information.status = ADDED;
     segtosend->file_information.file_name_size = strlen(file_name);
     pthread_mutex_lock(sendtotracker_mutex);
-    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                    int bs;
+                bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                while (bs != sizeof(ptp_peer_t)){
+                    bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                }
     pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 }
@@ -931,7 +956,11 @@ void file_deleted (char *file_name)
     segtosend->file_information.status = DELETED;
     segtosend->file_information.file_name_size = strlen(file_name);
     pthread_mutex_lock(sendtotracker_mutex);
-    send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                    int bs;
+                bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                while (bs != sizeof(ptp_peer_t)){
+                    bs = send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
+                }
     pthread_mutex_unlock(sendtotracker_mutex);
     free(segtosend);
 }

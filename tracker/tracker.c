@@ -172,7 +172,13 @@ void* handshake(void* arg) {
 	
 
 	//Recieve data from Peer
-	while( (recv( sockfd , receivedseg, sizeof(ptp_peer_t),0)) > 0 ){
+	int bytesreceived;
+	while( (bytesreceived = recv( sockfd , receivedseg, sizeof(ptp_peer_t),0)) > 0 ){
+
+        if (bytesreceived != sizeof(ptp_peer_t)){
+            bytesreceived = recv( sockfd , receivedseg, sizeof(ptp_peer_t),0);
+        }
+
 		//Keep reading until error occours
 		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
 			printf("RECEIVED REGISTER\n");
@@ -299,7 +305,12 @@ void broadcast_to_peer(int peer_sockfd){
 	segtosend->file_table_size = global_filetable->numfiles;
 	memcpy(&(segtosend->file_table), global_filetable, sizeof(fileTable_t));
 	printf("%s\n","Sending to peer" );
-	send(peer_sockfd , segtosend , sizeof(ptp_tracker_t), 0 );
+	int bytessent;
+	bytessent = send(peer_sockfd , segtosend , sizeof(ptp_tracker_t), 0 );
+	while (bytessent != sizeof(ptp_tracker_t)){
+		bytessent = send(peer_sockfd , segtosend , sizeof(ptp_tracker_t), 0 );
+	}
+
 	free(segtosend);
 }
 
