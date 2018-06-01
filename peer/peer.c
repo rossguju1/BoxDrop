@@ -85,10 +85,6 @@ void add_watches(int fd, char *root)
     {
 //        printf("Couldn't add watch to %s\n",root);
     }
-    else
-    {
-//        printf("Watching:: %s\n",root);
-    }
 
     /* Add watches to the Level 1 sub-dirs*/
     /*abs_dir = (char *)malloc(MAX_LEN);
@@ -116,9 +112,9 @@ void add_watches(int fd, char *root)
 int main(const int argc, char *argv[])
 {
     if (argc > 1){
-//        sprintf(DIRECTORY_NAME, "DROPBOX2");
+        sprintf(DIRECTORY_NAME, "DROPBOX2");
     } else{
-//         sprintf(DIRECTORY_NAME, "DROPBOX");
+         sprintf(DIRECTORY_NAME, "DROPBOX");
     }
 	int sock_fd;
 	struct sockaddr_in address;
@@ -131,7 +127,7 @@ int main(const int argc, char *argv[])
 
     // // choose a node to connect
     char hostname[50];
-//    sprintf(hostname, "flume.cs.dartmouth.edu");
+    sprintf(hostname, "flume.cs.dartmouth.edu");
     //// printf("Enter server name to connect:");
     // scanf("%s", hostname);
     struct hostent* host;
@@ -622,7 +618,7 @@ void* listen_to_peer(){
     /* Listening to incoming connections */
     if ((listen(list_sock, MAX_PEER_SLOTS)) == -1)
     {
-//            fprintf(stderr, "Error on listen --> %s", strerror(errno));
+            //fprintf(stderr, "Error on listen --> %s", strerror(errno));
 
             exit(EXIT_FAILURE);
     }
@@ -724,17 +720,17 @@ void *uploadThread(void *sock_desc){
     
 
 
-//    fprintf(stdout, "File Size: \n%d bytes\n", fileLen);
+    //fprintf(stdout, "File Size: \n%d bytes\n", fileLen);
 
     /* Sending file size */
     int len = send(peer_sock, &fileLen, sizeof(fileLen), 0);
     if (len < 0)
     {
-//          fprintf(stderr, "Error on sending greetings --> %s", strerror(errno));
+          //fprintf(stderr, "Error on sending greetings --> %s", strerror(errno));
 
           exit(EXIT_FAILURE);
     }
-//    fprintf(stdout, "Server sent %d bytes for the size\n", fileLen);
+    //fprintf(stdout, "Server sent %d bytes for the size\n", fileLen);
 
     // offset = 0;
     remain_data = file_stat.st_size;
@@ -849,7 +845,7 @@ void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filenam
           return -1;
 
         }
-//        fprintf(stdout, "\nFile size : %d\n", file_size_received);
+        //fprintf(stdout, "\nFile size : %d\n", file_size_received);
 
         char newfilename[FILE_NAME_LEN];
         strcpy(newfilename,DIRECTORY_NAME);
@@ -859,7 +855,7 @@ void downloadFromPeer(struct in_addr peerIP, char *file_to_download, int filenam
         received_file = fopen(newfilename, "w");
         if (received_file == NULL)
         {
-//                fprintf(stderr, "Failed to open file foo --> %s\n", strerror(errno));
+                //fprintf(stderr, "Failed to open file foo --> %s\n", strerror(errno));
 
                 exit(EXIT_FAILURE);
         }
@@ -898,13 +894,13 @@ void file_modified( char * file_name)
      *
      * */
 
-    printf("file modified %s ", file_name);
+//    printf("file modified %s ", file_name);
     char current_file_name[FILE_NAME_LEN];
     memcpy(current_file_name, file_name, FILE_NAME_LEN  );
     ptp_peer_t* segtosend = malloc(sizeof(ptp_peer_t) );
     segtosend->type = FILE_UPDATE;
     memcpy(segtosend->file_information.filename, current_file_name, FILE_NAME_LEN);
-    printf("file modified in segment %s ", segtosend->file_information.filename);
+//    printf("file modified in segment %s ", segtosend->file_information.filename);
     segtosend->file_information.status = MODIFIED;
     segtosend->file_information.file_name_size = strlen(file_name);
     pthread_mutex_lock(sendtotracker_mutex);
@@ -1074,7 +1070,7 @@ void *monitor(void *arg) {
                                 }
                                 else
                                 {
-                                    printf("FILE::%s CREATED\n", event->name);
+//                                    printf("FILE::%s CREATED\n", event->name);
                                     file_added = true;
                                     file_created(event->name);
                                 }
@@ -1094,7 +1090,8 @@ void *monitor(void *arg) {
 
                     }
                     if ( event->mask & IN_CLOSE_WRITE) {
-                        printf("in close write\n");
+//                        printf("in close write\n");
+
                         if (!file_added)
                         {
 //                            printf("registered\n");
