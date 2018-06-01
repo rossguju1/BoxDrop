@@ -480,7 +480,6 @@ void talkto_tracker(){
 
             char current_file_name[FILE_NAME_LEN];
             memcpy(current_file_name, files[i].name, FILE_NAME_LEN);
-            printf("about to send  %s\n", current_file_name);
             if (!CheckInFileTable(current_file_name, receivedseg->file_table))
             {
                 // send file update to tracker
@@ -492,13 +491,13 @@ void talkto_tracker(){
                 segtosend->file_information.latest_timestamp = time(NULL);
                 segtosend->file_information.status = ADDED;
                 pthread_mutex_lock(sendtotracker_mutex);
+                printf("seg to send %d %s \n", segtosend->type, segtosend->file_information.filename);
                 send(tracker_connection , segtosend , sizeof(ptp_peer_t), 0 );
                 pthread_mutex_unlock(sendtotracker_mutex);
-
+                memset(&segtosend, 0, sizeof(segtosend));
+                free(segtosend);
             }
             memset(&current_file_name, 0, sizeof(current_file_name));
-            memset(&segtosend, 0, sizeof(segtosend));
-            free(segtosend);
         }
 //        struct dirent *DIRentry;  // Pointer for directory entry
 //// 	// chdir("/Users/rossguju/Desktop/anon/CS60SP18/CS60-TeamDDOS-DropBox/common");

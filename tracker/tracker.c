@@ -170,7 +170,7 @@ void* handshake(void* arg) {
 	
 
 	//Recieve data from Peer
-	while( (read( sockfd , receivedseg, sizeof(ptp_peer_t))) > 0 ){
+	while( (read( sockfd , &receivedseg, sizeof(ptp_peer_t))) > 0 ){
 		//Keep reading until error occours
 		if (receivedseg->type == REGISTER){			//REGISTER MESSAGE
 			printf("RECEIVED REGISTER\n");
@@ -204,6 +204,8 @@ void* handshake(void* arg) {
 		 else {
 			printf("Unknown type of segment received for sockfd %d\n",sockfd );
 		}
+		memset(&receivedseg, 0, sizeof(receivedseg));
+		free(receivedseg);
 
 	}
 	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
