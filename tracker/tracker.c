@@ -205,7 +205,7 @@ void* handshake(void* arg) {
 			printf("Unknown type of segment received for sockfd %d\n",sockfd );
 		}
 		memset(&receivedseg, 0, sizeof(receivedseg));
-		free(receivedseg);
+		//free(receivedseg);
 
 	}
 	printf("Exiting Handshake Thread for sockfd %d\n",sockfd );
