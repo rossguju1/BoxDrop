@@ -115,11 +115,7 @@ void add_watches(int fd, char *root)
 
 int main(const int argc, char *argv[])
 {
-    if (argc > 1){
-        sprintf(DIRECTORY_NAME, "DROPBOX2");
-    } else{
-         sprintf(DIRECTORY_NAME, "DROPBOX");
-    }
+
 	int sock_fd;
 	struct sockaddr_in address;
 
@@ -131,9 +127,9 @@ int main(const int argc, char *argv[])
 
     // // choose a node to connect
     char hostname[50];
-    sprintf(hostname, "flume.cs.dartmouth.edu");
-    // printf("Enter server name to connect:");
-    // scanf("%s", hostname);
+    //sprintf(hostname, "flume.cs.dartmouth.edu");
+    printf("Enter server name to connect:");
+    scanf("%s", hostname);
     struct hostent* host;
     host = gethostbyname(hostname);     //get host structure from gethostbyname
     if (host== NULL){
